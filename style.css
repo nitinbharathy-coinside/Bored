@@ -62,6 +62,20 @@ header h1 {
   color: var(--fg);
 }
 
+.weather-status {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: -4px 0 16px;
+}
+
+.weather-status-good {
+  color: var(--fg);
+}
+
+.weather-status-bad {
+  color: var(--accent);
+}
+
 .link-btn {
   background: none;
   border: none;

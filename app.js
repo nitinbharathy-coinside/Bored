@@ -26,7 +26,11 @@
 
   let current = null;
   let recentIds = [];
-  let weatherState = { isRaining: false, ignoreWeather: false, known: false };
+  // `known` is true only once a fetch has actually resolved with real data.
+  // `checked` is true once a fetch attempt has settled at all (success or
+  // failure) — this is what lets the status line distinguish "still
+  // loading" from "the API call failed" from "loaded, and it's dry".
+  let weatherState = { isRaining: false, ignoreWeather: false, known: false, checked: false, rainingFraction: 0 };
 
   function loadList(key) {
     try {
@@ -169,6 +173,25 @@
     }
   }
 
+  // Always visible, regardless of whether it's raining — this is the one
+  // place you can check "did the live weather integration actually work?"
+  // without needing to catch it mid-rainstorm.
+  function renderWeatherStatus() {
+    const statusEl = el('weather-status');
+    if (!weatherState.known) {
+      statusEl.textContent = weatherState.checked
+        ? '⚠️ Weather: unavailable right now (NEA API unreachable or blocked) — outdoor picks are not being filtered for rain.'
+        : 'Checking Singapore weather…';
+      statusEl.className = weatherState.checked ? 'weather-status weather-status-bad' : 'weather-status';
+      return;
+    }
+    const pct = Math.round(weatherState.rainingFraction * 100);
+    statusEl.textContent = weatherState.isRaining
+      ? `🌧️ Weather: rain reported in ~${pct}% of NEA's forecast areas — outdoor picks are being filtered.`
+      : `☀️ Weather: dry across Singapore right now, via NEA — no filtering applied.`;
+    statusEl.className = 'weather-status weather-status-good';
+  }
+
   function renderHolidayBanner() {
     const today = new Date();
     if (isPublicHoliday(today)) {
@@ -255,18 +278,25 @@
   renderDone();
   renderStats();
   renderHolidayBanner();
+  renderWeatherStatus();
 
   fetchSingaporeWeather()
     .then((summary) => {
       weatherState.isRaining = summary.isRaining;
+      weatherState.rainingFraction = summary.rainingFraction;
       weatherState.known = true;
+      weatherState.checked = true;
       renderWeatherBanner();
+      renderWeatherStatus();
       if (current) draw();
     })
     .catch(() => {
-      // NEA API unreachable, blocked, or shape changed — degrade silently,
-      // the app works fine without live weather.
+      // NEA API unreachable, blocked, or shape changed — the app still
+      // works fine without live weather, but the status line surfaces this
+      // instead of silently pretending nothing happened.
       weatherState.known = false;
+      weatherState.checked = true;
       renderWeatherBanner();
+      renderWeatherStatus();
     });
 })();
