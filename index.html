@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bored</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Bored?</h1>
+      <p class="subtitle">Tell it what you've got. It gives you one concrete thing to do.</p>
+    </header>
+
+    <section class="filters">
+      <label>
+        Time
+        <select id="filter-time">
+          <option value="any">Any</option>
+          <option value="5">5 min or less</option>
+          <option value="15">15 min or less</option>
+          <option value="30">30 min or less</option>
+          <option value="60">1 hour or less</option>
+        </select>
+      </label>
+      <label>
+        Cost
+        <select id="filter-cost">
+          <option value="any">Any</option>
+          <option value="free">Free only</option>
+          <option value="low">Free or low-cost</option>
+        </select>
+      </label>
+      <label>
+        Energy
+        <select id="filter-energy">
+          <option value="any">Any</option>
+          <option value="low">Low energy</option>
+          <option value="med">Some energy</option>
+          <option value="high">High energy</option>
+        </select>
+      </label>
+      <label>
+        Where
+        <select id="filter-location">
+          <option value="any">Anywhere</option>
+          <option value="indoor">Indoors</option>
+          <option value="outdoor">Outdoors</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="card-area">
+      <div id="card" class="card empty">
+        <p>Set your filters, then hit the button.</p>
+      </div>
+      <div class="actions">
+        <button id="btn-surprise" class="primary">Give me something</button>
+        <button id="btn-skip" disabled>Not now</button>
+        <button id="btn-save" disabled>Save</button>
+        <button id="btn-done" disabled>Did it ✓</button>
+      </div>
+    </section>
+
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="saved">Saved</button>
+      <button class="tab-btn" data-tab="done">Done (<span id="done-count">0</span>)</button>
+    </nav>
+
+    <section id="tab-saved" class="tab-panel active">
+      <ul id="saved-list" class="list"></ul>
+      <p id="saved-empty" class="empty-note">Nothing saved yet.</p>
+    </section>
+
+    <section id="tab-done" class="tab-panel">
+      <ul id="done-list" class="list"></ul>
+      <p id="done-empty" class="empty-note">Nothing marked done yet.</p>
+    </section>
+
+    <footer>
+      <button id="theme-toggle" title="Toggle theme">🌓</button>
+      <span>All data stays on your device (localStorage). No account, no server.</span>
+    </footer>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
