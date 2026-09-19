@@ -1,4 +1,6 @@
 (function () {
+  const { pickActivity, computeStreak } = window.BoredFilter;
+
   const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', theme: 'bored.theme' };
   const RECENT_LIMIT = 8; // avoid repeating the last N picks in this session
 
@@ -33,28 +35,19 @@
     }
   }
 
-  function matchesFilters(activity) {
-    const time = filterTime.value;
-    const cost = filterCost.value;
-    const energy = filterEnergy.value;
-    const location = filterLocation.value;
-
-    if (time !== 'any' && activity.minMinutes > Number(time)) return false;
-    if (cost === 'free' && activity.cost !== 'free') return false;
-    if (cost === 'low' && activity.cost === 'paid') return false;
-    if (energy !== 'any' && activity.energy !== energy) return false;
-    if (location !== 'any' && activity.location !== 'any' && activity.location !== location) return false;
-    return true;
+  function currentFilters() {
+    return {
+      time: filterTime.value,
+      cost: filterCost.value,
+      energy: filterEnergy.value,
+      location: filterLocation.value,
+    };
   }
 
-  function pickActivity() {
-    const pool = ACTIVITIES.filter(matchesFilters);
-    if (pool.length === 0) return null;
-
-    let candidates = pool.filter((a) => !recentIds.includes(a.id));
-    if (candidates.length === 0) candidates = pool; // exhausted the pool, allow repeats again
-
-    return candidates[Math.floor(Math.random() * candidates.length)];
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
   }
 
   function renderCard(activity) {
@@ -67,20 +60,14 @@
       return;
     }
     card.className = 'card';
-    card.innerHTML = `<div><p>${escapeHtml(activity.text)}</p><span class="tags">${activity.tags.join(' · ')} · ${activity.minMinutes} min · ${activity.cost}</span></div>`;
+    card.innerHTML = `<div><span class="category">${escapeHtml(activity.tags[0])}</span><p>${escapeHtml(activity.text)}</p><span class="tags">${activity.minMinutes} min · ${activity.cost}</span></div>`;
     btnSkip.disabled = false;
     btnSave.disabled = false;
     btnDone.disabled = false;
   }
 
-  function escapeHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
   function draw() {
-    current = pickActivity();
+    current = pickActivity(ACTIVITIES, currentFilters(), recentIds);
     if (current) {
       recentIds.push(current.id);
       if (recentIds.length > RECENT_LIMIT) recentIds.shift();
@@ -93,7 +80,7 @@
     const list = el('saved-list');
     const empty = el('saved-empty');
     list.innerHTML = '';
-    empty.style.display = saved.length ? 'none' : 'block';
+    empty.hidden = saved.length > 0;
     saved.forEach((item) => {
       const li = document.createElement('li');
       li.innerHTML = `<span>${escapeHtml(item.text)}</span>`;
@@ -114,16 +101,32 @@
     const empty = el('done-empty');
     el('done-count').textContent = done.length;
     list.innerHTML = '';
-    empty.style.display = done.length ? 'none' : 'block';
+    empty.hidden = done.length > 0;
     done
       .slice()
       .reverse()
       .forEach((item) => {
         const li = document.createElement('li');
         const when = new Date(item.doneAt).toLocaleDateString();
-        li.innerHTML = `<span>${escapeHtml(item.text)}</span><span style="color:var(--muted);font-size:0.75rem">${when}</span>`;
+        li.innerHTML = `<span>${escapeHtml(item.text)}</span><span class="muted-note">${when}</span>`;
         list.appendChild(li);
       });
+  }
+
+  function renderStats() {
+    const done = loadList(STORAGE_KEYS.done);
+    const streak = computeStreak(done.map((d) => d.doneAt));
+    el('stat-total').textContent = done.length;
+    el('stat-streak').textContent = streak;
+
+    const counts = {};
+    done.forEach((item) => {
+      const activity = ACTIVITIES.find((a) => a.id === item.id);
+      const category = activity ? activity.tags[0] : 'other';
+      counts[category] = (counts[category] || 0) + 1;
+    });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    el('stat-top').textContent = top ? `${top[0]} (${top[1]})` : '—';
   }
 
   btnSurprise.addEventListener('click', draw);
@@ -146,6 +149,7 @@
     done.push({ id: current.id, text: current.text, doneAt: Date.now() });
     saveList(STORAGE_KEYS.done, done);
     renderDone();
+    renderStats();
     draw();
   });
 
@@ -178,6 +182,15 @@
   if (savedTheme) applyTheme(savedTheme);
   else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
 
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {
+        // offline support is a nice-to-have; ignore registration failures
+      });
+    });
+  }
+
   renderSaved();
   renderDone();
+  renderStats();
 })();

@@ -1,0 +1,9 @@
+{
+  "name": "bored",
+  "private": true,
+  "description": "A static activity-suggestion web app.",
+  "scripts": {
+    "start": "npx serve .",
+    "test": "node --test"
+  }
+}

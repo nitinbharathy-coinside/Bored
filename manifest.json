@@ -1,0 +1,13 @@
+{
+  "name": "Bored",
+  "short_name": "Bored",
+  "description": "Tell it your time, cost, energy, and location. Get one concrete thing to do.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#d9622b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

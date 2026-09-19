@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Bored</title>
+<meta name="description" content="Tell it your time, cost, energy, and location. Get one concrete thing to do.">
+<meta name="theme-color" content="#d9622b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bored">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -66,6 +74,7 @@
     <nav class="tabs">
       <button class="tab-btn active" data-tab="saved">Saved</button>
       <button class="tab-btn" data-tab="done">Done (<span id="done-count">0</span>)</button>
+      <button class="tab-btn" data-tab="stats">Stats</button>
     </nav>
 
     <section id="tab-saved" class="tab-panel active">
@@ -78,6 +87,23 @@
       <p id="done-empty" class="empty-note">Nothing marked done yet.</p>
     </section>
 
+    <section id="tab-stats" class="tab-panel">
+      <div class="stats-grid">
+        <div class="stat-tile">
+          <span class="stat-value" id="stat-total">0</span>
+          <span class="stat-label">Total done</span>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-value" id="stat-streak">0</span>
+          <span class="stat-label">Day streak</span>
+        </div>
+        <div class="stat-tile stat-tile-wide">
+          <span class="stat-value" id="stat-top">—</span>
+          <span class="stat-label">Top category</span>
+        </div>
+      </div>
+    </section>
+
     <footer>
       <button id="theme-toggle" title="Toggle theme">🌓</button>
       <span>All data stays on your device (localStorage). No account, no server.</span>
@@ -85,6 +111,7 @@
   </div>
 
   <script src="data.js"></script>
+  <script src="filter.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
