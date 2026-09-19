@@ -1,7 +1,7 @@
 {
-  "name": "Bored",
-  "short_name": "Bored",
-  "description": "Tell it your time, cost, energy, and location. Get one concrete thing to do.",
+  "name": "Bored SG",
+  "short_name": "Bored SG",
+  "description": "Tell it your time, budget, energy, and part of Singapore. Get one concrete thing to do — weather and public holidays included.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",

@@ -44,11 +44,44 @@ header h1 {
   margin: 0 0 24px;
 }
 
+.banner {
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.banner-weather {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--fg);
+}
+
+.banner-holiday {
+  background: color-mix(in srgb, #2f9e63 15%, transparent);
+  color: var(--fg);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  font-size: inherit;
+  cursor: pointer;
+  border-radius: 0;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 20px;
+}
+
+.filter-wide {
+  grid-column: 1 / -1;
 }
 
 .filters label {

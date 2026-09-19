@@ -3,23 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Bored</title>
-<meta name="description" content="Tell it your time, cost, energy, and location. Get one concrete thing to do.">
+<title>Bored SG</title>
+<meta name="description" content="Tell it your time, budget, energy, and part of Singapore. Get one concrete thing to do — weather and public holidays included.">
 <meta name="theme-color" content="#d9622b">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Bored">
+<meta name="apple-mobile-web-app-title" content="Bored SG">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>Bored?</h1>
-      <p class="subtitle">Tell it what you've got. It gives you one concrete thing to do.</p>
+      <p class="subtitle">Tell it what you've got. It gives you one concrete thing to do — around Singapore.</p>
     </header>
+
+    <div id="holiday-banner" class="banner banner-holiday" hidden></div>
+    <div id="weather-banner" class="banner banner-weather" hidden></div>
 
     <section class="filters">
       <label>
@@ -33,11 +36,12 @@
         </select>
       </label>
       <label>
-        Cost
+        Budget
         <select id="filter-cost">
           <option value="any">Any</option>
           <option value="free">Free only</option>
-          <option value="low">Free or low-cost</option>
+          <option value="under10">Up to $10</option>
+          <option value="10to30">Up to $30</option>
         </select>
       </label>
       <label>
@@ -55,6 +59,18 @@
           <option value="any">Anywhere</option>
           <option value="indoor">Indoors</option>
           <option value="outdoor">Outdoors</option>
+        </select>
+      </label>
+      <label class="filter-wide">
+        Part of Singapore
+        <select id="filter-area">
+          <option value="any">Anywhere</option>
+          <option value="Central">Central</option>
+          <option value="East">East</option>
+          <option value="West">West</option>
+          <option value="North">North</option>
+          <option value="North-East">North-East</option>
+          <option value="South">South (Sentosa & islands)</option>
         </select>
       </label>
     </section>
@@ -106,12 +122,14 @@
 
     <footer>
       <button id="theme-toggle" title="Toggle theme">🌓</button>
-      <span>All data stays on your device (localStorage). No account, no server.</span>
+      <span>All data stays on your device. Weather is live from NEA via data.gov.sg; public holidays are Singapore's 2026 MOM calendar.</span>
     </footer>
   </div>
 
   <script src="data.js"></script>
   <script src="filter.js"></script>
+  <script src="holidays.js"></script>
+  <script src="weather.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
