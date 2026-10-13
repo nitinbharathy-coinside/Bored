@@ -1,9 +1,15 @@
 # Bored SG
 
-A tiny, dependency-free web app: tell it how much time, budget, energy, and
-which part of Singapore you're in, and it gives you one concrete thing to do
-— with a curated set of real Singapore places, live weather awareness, and
-Singapore public holiday awareness baked in.
+A tiny, dependency-free web app with two modes:
+
+- **Quick pick** (free): tell it your time, budget, energy and part of
+  Singapore, and it gives you one concrete thing to do.
+- **Plan a day** (Pro preview): tell it how long you have and what you want to
+  spend, and it builds a multi-stop plan that fits both, with a rain backup for
+  every outdoor stop.
+
+Both use a curated set of real Singapore places, live weather awareness and
+Singapore public holiday awareness.
 
 No backend, no build step, no account. Saved items, done history, streaks,
 and theme live in your browser's `localStorage`, and the app works offline
@@ -11,7 +17,7 @@ once loaded once (it's an installable PWA).
 
 ## What's Singapore-specific about it
 
-- **72 real Singapore activities** across hawker food, parks and nature,
+- **74 real Singapore activities** across hawker food, parks and nature,
   heritage, paid attractions, water/active, malls and rainy-day indoor
   options, neighbourhood walks, and fitness — each tagged with a part of the
   island (Central / East / West / North / North-East / South / Islandwide).
@@ -28,6 +34,35 @@ once loaded once (it's an installable PWA).
 - **SGD-realistic pricing.** Cost is shown in bands (Free / Under $10 /
   $10–$30 / $30+) rather than generic "free/low/paid" labels, and the budget
   filter works as a "up to" cutoff over those bands.
+
+## Plan a day (Pro preview)
+
+`planner.js` turns the dataset into a plan: 1 to 4 stops, ordered to keep
+travel short, that together fit the time window and the per-person budget.
+
+- **Rain backups.** Every weather-sensitive stop gets a sheltered swap in the
+  same area. Backups are chosen so that swapping in *all* of them at once still
+  fits the window and budget, and no backup is suggested twice.
+- **Rain-proof mode.** Tick the box (or let live rain switch it on) and only
+  indoor/sheltered stops are used. The dataset marks anything it is unsure
+  about as weather-sensitive, so this mode errs on the side of caution.
+- **Shuffle, share, save.** Re-roll a plan, send it to WhatsApp as plain text,
+  or save it on the device.
+- **Evening out** is deliberately limited: only a handful of entries are
+  evening activities, so some combinations return nothing and the UI says how
+  to loosen the request.
+
+What the plan does **not** know, and says so on screen:
+
+- Travel time is a coarse, conservative estimate from the pair of areas, not
+  live transit data.
+- Prices are bands. Budget checks use the top of each band (and an assumed
+  $60 for "$30+"), so a plan stays within budget on paper.
+- Opening hours are not modelled, apart from entries whose own text is an
+  evening or night activity.
+
+Nothing is charged: "Pro preview" only labels what could sit behind a paywall.
+There is no backend, account or payment code.
 
 ### Accuracy notes — read before trusting the dates or the weather blindly
 
@@ -73,9 +108,12 @@ stable URL you can open on any device.
 
 - `index.html` — markup
 - `style.css` — styling (light/dark via `prefers-color-scheme` + manual toggle)
-- `data.js` — the activity dataset (`ACTIVITIES` array, 72 Singapore entries)
+- `data.js` — the activity dataset (`ACTIVITIES` array, 74 Singapore entries)
 - `filter.js` — pure, DOM-free logic (filtering, picking, streak math, and
   weather-based filtering) — unit tested
+- `planner.js` — the day planner (eligibility, ordering, scoring, rain
+  backups, shareable text) — pure, seedable and unit tested, including a
+  400-request property test against the real dataset
 - `holidays.js` — Singapore's 2026 public holiday table and pure date helpers
   — unit tested
 - `weather.js` — NEA live weather fetch + pure forecast-aggregation logic —
@@ -107,12 +145,16 @@ Edit `data.js`. Each entry needs:
   energy: 'low'|'med'|'high', location: 'indoor'|'outdoor'|'any',
   weatherSensitive: true|false,
   area: 'Islandwide'|'Central'|'East'|'West'|'North'|'North-East'|'South',
-  tags: ['...'] }
+  tags: ['...'],
+  daypart: 'evening',     // optional: only for genuinely evening/night entries
+  skipInPlans: true }     // optional: not a schedulable outing; quick pick only
 ```
 
 `weatherSensitive` should be `true` only if rain would genuinely spoil the
-activity (a walk in the park, cycling East Coast Park) — a covered hawker
-centre or an indoor museum is `false` even though the walk there is outdoors.
+activity (a walk in the park, cycling East Coast Park). When in doubt, mark it
+`true`: the planner's rain-proof mode only holds if everything left unflagged
+really is sheltered. A covered hawker centre or an indoor museum is `false`
+even though the walk there is outdoors.
 
 `tags[0]` is shown as the activity's category badge and used for the "top
 category" stat.

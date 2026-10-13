@@ -16,6 +16,8 @@ test('data set has unique, well-formed ids', () => {
     assert.ok(['indoor', 'outdoor', 'any'].includes(a.location), `activity ${a.id} bad location`);
     assert.ok(typeof a.weatherSensitive === 'boolean', `activity ${a.id} missing weatherSensitive`);
     assert.ok(VALID_AREAS.includes(a.area), `activity ${a.id} bad area`);
+    assert.ok(a.daypart === undefined || a.daypart === 'evening', `activity ${a.id} bad daypart`);
+    assert.ok(a.skipInPlans === undefined || a.skipInPlans === true, `activity ${a.id} bad skipInPlans`);
     assert.ok(Array.isArray(a.tags) && a.tags.length > 0, `activity ${a.id} missing tags`);
   }
 });

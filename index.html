@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Bored SG</title>
-<meta name="description" content="Tell it your time, budget, energy, and part of Singapore. Get one concrete thing to do — weather and public holidays included.">
+<meta name="description" content="One thing to do right now, or a whole day planned around your time, budget and the weather. Made for Singapore.">
 <meta name="theme-color" content="#d9622b">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -18,107 +18,183 @@
   <div class="wrap">
     <header>
       <h1>Bored?</h1>
-      <p class="subtitle">Tell it what you've got. It gives you one concrete thing to do — around Singapore.</p>
+      <p class="subtitle">Tell it what you've got. It gives you one concrete thing to do, or a whole day, around Singapore.</p>
     </header>
 
     <div id="holiday-banner" class="banner banner-holiday" hidden></div>
     <div id="weather-banner" class="banner banner-weather" hidden></div>
     <div id="weather-status" class="weather-status">Checking Singapore weather…</div>
 
-    <section class="filters">
-      <label>
-        Time
-        <select id="filter-time">
-          <option value="any">Any</option>
-          <option value="5">5 min or less</option>
-          <option value="15">15 min or less</option>
-          <option value="30">30 min or less</option>
-          <option value="60">1 hour or less</option>
-        </select>
-      </label>
-      <label>
-        Budget
-        <select id="filter-cost">
-          <option value="any">Any</option>
-          <option value="free">Free only</option>
-          <option value="under10">Up to $10</option>
-          <option value="10to30">Up to $30</option>
-        </select>
-      </label>
-      <label>
-        Energy
-        <select id="filter-energy">
-          <option value="any">Any</option>
-          <option value="low">Low energy</option>
-          <option value="med">Some energy</option>
-          <option value="high">High energy</option>
-        </select>
-      </label>
-      <label>
-        Where
-        <select id="filter-location">
-          <option value="any">Anywhere</option>
-          <option value="indoor">Indoors</option>
-          <option value="outdoor">Outdoors</option>
-        </select>
-      </label>
-      <label class="filter-wide">
-        Part of Singapore
-        <select id="filter-area">
-          <option value="any">Anywhere</option>
-          <option value="Central">Central</option>
-          <option value="East">East</option>
-          <option value="West">West</option>
-          <option value="North">North</option>
-          <option value="North-East">North-East</option>
-          <option value="South">South (Sentosa & islands)</option>
-        </select>
-      </label>
-    </section>
-
-    <section class="card-area">
-      <div id="card" class="card empty">
-        <p>Set your filters, then hit the button.</p>
-      </div>
-      <div class="actions">
-        <button id="btn-surprise" class="primary">Give me something</button>
-        <button id="btn-skip" disabled>Not now</button>
-        <button id="btn-save" disabled>Save</button>
-        <button id="btn-done" disabled>Did it ✓</button>
-      </div>
-    </section>
-
-    <nav class="tabs">
-      <button class="tab-btn active" data-tab="saved">Saved</button>
-      <button class="tab-btn" data-tab="done">Done (<span id="done-count">0</span>)</button>
-      <button class="tab-btn" data-tab="stats">Stats</button>
+    <nav class="modes" role="tablist" aria-label="Mode">
+      <button class="mode-btn active" data-mode="quick" role="tab" aria-selected="true" aria-controls="mode-quick">Quick pick</button>
+      <button class="mode-btn" data-mode="plan" role="tab" aria-selected="false" aria-controls="mode-plan">Plan a day <span class="pro-badge">Pro preview</span></button>
     </nav>
 
-    <section id="tab-saved" class="tab-panel active">
-      <ul id="saved-list" class="list"></ul>
-      <p id="saved-empty" class="empty-note">Nothing saved yet.</p>
-    </section>
+    <div id="mode-quick" role="tabpanel">
+      <section class="filters">
+        <label>
+          Time
+          <select id="filter-time">
+            <option value="any">Any</option>
+            <option value="5">5 min or less</option>
+            <option value="15">15 min or less</option>
+            <option value="30">30 min or less</option>
+            <option value="60">1 hour or less</option>
+          </select>
+        </label>
+        <label>
+          Budget
+          <select id="filter-cost">
+            <option value="any">Any</option>
+            <option value="free">Free only</option>
+            <option value="under10">Up to $10</option>
+            <option value="10to30">Up to $30</option>
+          </select>
+        </label>
+        <label>
+          Energy
+          <select id="filter-energy">
+            <option value="any">Any</option>
+            <option value="low">Low energy</option>
+            <option value="med">Some energy</option>
+            <option value="high">High energy</option>
+          </select>
+        </label>
+        <label>
+          Where
+          <select id="filter-location">
+            <option value="any">Anywhere</option>
+            <option value="indoor">Indoors</option>
+            <option value="outdoor">Outdoors</option>
+          </select>
+        </label>
+        <label class="filter-wide">
+          Part of Singapore
+          <select id="filter-area">
+            <option value="any">Anywhere</option>
+            <option value="Central">Central</option>
+            <option value="East">East</option>
+            <option value="West">West</option>
+            <option value="North">North</option>
+            <option value="North-East">North-East</option>
+            <option value="South">South (Sentosa & islands)</option>
+          </select>
+        </label>
+      </section>
 
-    <section id="tab-done" class="tab-panel">
-      <ul id="done-list" class="list"></ul>
-      <p id="done-empty" class="empty-note">Nothing marked done yet.</p>
-    </section>
+      <section class="card-area">
+        <div id="card" class="card empty">
+          <p>Set your filters, then hit the button.</p>
+        </div>
+        <div class="actions">
+          <button id="btn-surprise" class="primary">Give me something</button>
+          <button id="btn-skip" disabled>Not now</button>
+          <button id="btn-save" disabled>Save</button>
+          <button id="btn-done" disabled>Did it ✓</button>
+        </div>
+      </section>
 
-    <section id="tab-stats" class="tab-panel">
-      <div class="stats-grid">
-        <div class="stat-tile">
-          <span class="stat-value" id="stat-total">0</span>
-          <span class="stat-label">Total done</span>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="saved">Saved</button>
+        <button class="tab-btn" data-tab="done">Done (<span id="done-count">0</span>)</button>
+        <button class="tab-btn" data-tab="stats">Stats</button>
+      </nav>
+
+      <section id="tab-saved" class="tab-panel active">
+        <ul id="saved-list" class="list"></ul>
+        <p id="saved-empty" class="empty-note">Nothing saved yet.</p>
+      </section>
+
+      <section id="tab-done" class="tab-panel">
+        <ul id="done-list" class="list"></ul>
+        <p id="done-empty" class="empty-note">Nothing marked done yet.</p>
+      </section>
+
+      <section id="tab-stats" class="tab-panel">
+        <div class="stats-grid">
+          <div class="stat-tile">
+            <span class="stat-value" id="stat-total">0</span>
+            <span class="stat-label">Total done</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-value" id="stat-streak">0</span>
+            <span class="stat-label">Day streak</span>
+          </div>
+          <div class="stat-tile stat-tile-wide">
+            <span class="stat-value" id="stat-top">—</span>
+            <span class="stat-label">Top category</span>
+          </div>
         </div>
-        <div class="stat-tile">
-          <span class="stat-value" id="stat-streak">0</span>
-          <span class="stat-label">Day streak</span>
-        </div>
-        <div class="stat-tile stat-tile-wide">
-          <span class="stat-value" id="stat-top">—</span>
-          <span class="stat-label">Top category</span>
-        </div>
+      </section>
+    </div>
+
+    <section id="mode-plan" role="tabpanel" hidden>
+      <p class="pro-note">Pro preview: free while this is a prototype. No payment is taken. Plans fit your time and budget, are built around the weather, and give every outdoor stop a rain backup.</p>
+
+      <div class="filters">
+        <label>
+          Time available
+          <select id="plan-time">
+            <option value="120">2 hours</option>
+            <option value="180">3 hours</option>
+            <option value="240" selected>4 hours</option>
+            <option value="360">6 hours</option>
+            <option value="480">8 hours</option>
+          </select>
+        </label>
+        <label>
+          Budget per person
+          <select id="plan-budget">
+            <option value="0">Free only</option>
+            <option value="20">Up to $20</option>
+            <option value="50" selected>Up to $50</option>
+            <option value="100">Up to $100</option>
+            <option value="200">Up to $200</option>
+          </select>
+        </label>
+        <label>
+          Energy
+          <select id="plan-energy">
+            <option value="any">Any</option>
+            <option value="low">Low energy</option>
+            <option value="med">Some energy</option>
+            <option value="high">High energy</option>
+          </select>
+        </label>
+        <label>
+          When
+          <select id="plan-when">
+            <option value="day">Daytime</option>
+            <option value="evening">Evening out (fewer picks)</option>
+          </select>
+        </label>
+        <label class="filter-wide">
+          Part of Singapore
+          <select id="plan-area">
+            <option value="any">Anywhere</option>
+            <option value="Central">Central</option>
+            <option value="East">East</option>
+            <option value="West">West</option>
+            <option value="North">North</option>
+            <option value="North-East">North-East</option>
+            <option value="South">South (Sentosa & islands)</option>
+          </select>
+        </label>
+        <label class="filter-wide check">
+          <input type="checkbox" id="plan-rainproof">
+          Rain-proof plan (indoor and sheltered stops only)
+        </label>
       </div>
+
+      <div class="actions">
+        <button id="btn-plan" class="primary">Build my plan</button>
+      </div>
+
+      <div id="plan-result" class="plan-result" aria-live="polite"></div>
+
+      <h2 class="plans-heading">Saved plans</h2>
+      <ul id="plans-list" class="list"></ul>
+      <p id="plans-empty" class="empty-note">No saved plans yet.</p>
     </section>
 
     <footer>
@@ -129,6 +205,7 @@
 
   <script src="data.js"></script>
   <script src="filter.js"></script>
+  <script src="planner.js"></script>
   <script src="holidays.js"></script>
   <script src="weather.js"></script>
   <script src="app.js"></script>

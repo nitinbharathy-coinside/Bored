@@ -2,11 +2,10 @@
   const { pickActivity, computeStreak } = window.BoredFilter;
   const { isPublicHoliday, nextPublicHoliday, isLongWeekendHoliday } = window.BoredHolidays;
   const { fetchSingaporeWeather } = window.BoredWeather;
+  const { planDay, formatPlanText, formatMinutes, formatCostRange, COST_LABELS } = window.BoredPlanner;
 
-  const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', theme: 'bored.theme' };
+  const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme' };
   const RECENT_LIMIT = 8; // avoid repeating the last N picks in this session
-
-  const COST_LABELS = { free: 'Free', under10: 'Under $10', '10to30': '$10–$30', '30plus': '$30+' };
 
   const el = (id) => document.getElementById(id);
   const filterTime = el('filter-time');
@@ -40,11 +39,14 @@
     }
   }
 
+  // Returns whether the write actually stuck, so callers can avoid claiming
+  // "saved" when storage is unavailable (private mode, quota).
   function saveList(key, list) {
     try {
       localStorage.setItem(key, JSON.stringify(list));
+      return true;
     } catch {
-      // storage unavailable (private mode, quota) — fail silently, app still works this session
+      return false;
     }
   }
 
@@ -213,6 +215,175 @@
     }
   }
 
+  // ---- Day planner (Pro preview) ----
+  let lastPlan = null;
+  let lastPlanText = '';
+  let planBuiltOnce = false;
+
+  function planOptionsFromForm(avoidIds) {
+    const liveRain = weatherState.known && weatherState.isRaining && !weatherState.ignoreWeather;
+    return {
+      windowMinutes: Number(el('plan-time').value),
+      budget: Number(el('plan-budget').value),
+      energy: el('plan-energy').value,
+      area: el('plan-area').value,
+      daypart: el('plan-when').value,
+      rainProof: el('plan-rainproof').checked || liveRain,
+      avoidIds: avoidIds || [],
+    };
+  }
+
+  function planSummary(plan) {
+    const cost = plan.costMax === 0 ? 'Free' : `${formatCostRange(plan.costMin, plan.costMax)} per person`;
+    return `${plan.stops.length} stop${plan.stops.length > 1 ? 's' : ''} · about ${formatMinutes(plan.totalMinutes)} · ${cost}`;
+  }
+
+  function renderPlan(plan, options) {
+    const out = el('plan-result');
+    if (!plan) {
+      lastPlan = null;
+      lastPlanText = '';
+      const hint =
+        options.daypart === 'evening'
+          ? 'Evening out has fewer picks. Try removing the energy filter, turning off rain-proof, or choosing "Anywhere".'
+          : 'Try more time, a bigger budget, a different energy level, or "Anywhere".';
+      out.innerHTML = `<p class="empty-note">Nothing fits that combination. ${hint}</p>`;
+      return;
+    }
+
+    lastPlan = plan;
+    lastPlanText = formatPlanText(plan);
+
+    const stopsHtml = plan.stops
+      .map((stop, i) => {
+        const leg = i > 0 ? `<span class="leg">about ${plan.legs[i - 1]} min travel from the previous stop</span>` : '';
+        let backupHtml = '';
+        if (stop.id in plan.backups) {
+          const b = plan.backups[stop.id];
+          backupHtml = b
+            ? `<span class="backup"><strong>If it rains:</strong> ${escapeHtml(b.text)} <span class="meta">${b.area} · ${b.minMinutes} min · ${COST_LABELS[b.cost]}</span></span>`
+            : '<span class="backup"><strong>If it rains:</strong> no sheltered swap found nearby, so consider skipping this one.</span>';
+        }
+        return `<li class="plan-stop">${leg}<span class="category">${escapeHtml(stop.tags[0])}</span><p>${escapeHtml(stop.text)}</p><span class="meta">${stop.area} · ${stop.minMinutes} min · ${COST_LABELS[stop.cost]}</span>${backupHtml}</li>`;
+      })
+      .join('');
+
+    let note = '';
+    if (plan.rainProof) note = 'Planned around rain: indoor and sheltered stops only.';
+    else if (Object.keys(plan.backups).length > 0) note = 'The weather now may not match the day you go, so each outdoor stop comes with a rain backup.';
+
+    out.innerHTML = `
+      <div class="plan">
+        <p class="plan-summary">${escapeHtml(planSummary(plan))}</p>
+        ${note ? `<p class="plan-note">${escapeHtml(note)}</p>` : ''}
+        <ol class="plan-stops">${stopsHtml}</ol>
+        <div class="actions">
+          <button data-action="shuffle">Shuffle</button>
+          <button data-action="share">Share / copy</button>
+          <button data-action="save">Save plan</button>
+        </div>
+        <span id="plan-status" class="muted-note" role="status"></span>
+        <textarea id="plan-fallback" class="plan-fallback" rows="8" readonly hidden></textarea>
+        <p class="plan-footnote">Travel times are rough estimates, not live transit data. Opening hours aren't checked: confirm before you go.</p>
+      </div>`;
+  }
+
+  function buildAndRenderPlan(avoidIds) {
+    const options = planOptionsFromForm(avoidIds);
+    planBuiltOnce = true;
+    renderPlan(planDay(ACTIVITIES, options), options);
+  }
+
+  async function sharePlan() {
+    if (!lastPlanText) return;
+    const status = el('plan-status');
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'My Bored SG plan', text: lastPlanText });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(lastPlanText);
+      status.textContent = 'Copied. Paste it into WhatsApp or Notes.';
+    } catch {
+      status.textContent = 'Could not copy automatically. Select and copy the text below.';
+      const box = el('plan-fallback');
+      box.value = lastPlanText;
+      box.hidden = false;
+    }
+  }
+
+  function savePlan() {
+    if (!lastPlan) return;
+    const status = el('plan-status');
+    const plans = loadList(STORAGE_KEYS.plans);
+    if (plans.some((p) => p.text === lastPlanText)) {
+      status.textContent = 'Already saved.';
+      return;
+    }
+    plans.unshift({ id: Date.now(), summary: planSummary(lastPlan), text: lastPlanText });
+    if (saveList(STORAGE_KEYS.plans, plans)) {
+      status.textContent = 'Saved on this device.';
+      renderSavedPlans();
+    } else {
+      status.textContent = 'Could not save: this browser is blocking storage (private mode?).';
+    }
+  }
+
+  function renderSavedPlans() {
+    const plans = loadList(STORAGE_KEYS.plans);
+    const list = el('plans-list');
+    list.innerHTML = '';
+    el('plans-empty').hidden = plans.length > 0;
+    plans.forEach((p) => {
+      const li = document.createElement('li');
+      li.className = 'saved-plan';
+      const details = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = p.summary;
+      const pre = document.createElement('pre');
+      pre.textContent = p.text;
+      details.append(summary, pre);
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Remove';
+      removeBtn.onclick = () => {
+        saveList(STORAGE_KEYS.plans, loadList(STORAGE_KEYS.plans).filter((x) => x.id !== p.id));
+        renderSavedPlans();
+      };
+      li.append(details, removeBtn);
+      list.appendChild(li);
+    });
+  }
+
+  el('btn-plan').addEventListener('click', () => buildAndRenderPlan([]));
+
+  el('plan-result').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
+    const action = button.dataset.action;
+    if (action === 'shuffle') buildAndRenderPlan(lastPlan ? lastPlan.stops.map((s) => s.id) : []);
+    else if (action === 'share') sharePlan();
+    else if (action === 'save') savePlan();
+  });
+
+  document.querySelectorAll('.mode-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      document.querySelectorAll('.mode-btn').forEach((b) => {
+        const active = b === btn;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-selected', String(active));
+      });
+      el('mode-quick').hidden = mode !== 'quick';
+      el('mode-plan').hidden = mode !== 'plan';
+      // Open the planner with a real plan on screen rather than an empty form.
+      if (mode === 'plan' && !planBuiltOnce) buildAndRenderPlan([]);
+    });
+  });
+
   btnSurprise.addEventListener('click', draw);
 
   btnSkip.addEventListener('click', draw);
@@ -277,6 +448,7 @@
   renderSaved();
   renderDone();
   renderStats();
+  renderSavedPlans();
   renderHolidayBanner();
   renderWeatherStatus();
 
