@@ -59,6 +59,14 @@ once loaded once (it's an installable PWA).
   a one-tap "Plan all 3 days" builds the long weekend with real dates. The
   holiday table only covers 2026.
 
+- **Share a plan by link.** "Copy link" and "Share / copy" put the plan in the
+  URL's `#p=` fragment as the ids of its stops and rain backups (about 300
+  characters for 3 days). Nothing is uploaded: fragments are not sent to any
+  server, and the receiver's app rebuilds the plan from its own dataset. A
+  link with an unknown id, a wrong version or malformed data is refused with a
+  message rather than guessed at, so a link made before the dataset changes may
+  stop opening.
+
 ## Plan a day (Pro preview)
 
 `planner.js` turns the dataset into a plan: 1 to 4 stops, ordered to keep

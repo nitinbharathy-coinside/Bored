@@ -2,7 +2,7 @@
   const { pickActivity, computeStreak, nearestArea } = window.BoredFilter;
   const { isPublicHoliday, nextLongWeekend } = window.BoredHolidays;
   const { fetchSingaporeWeather } = window.BoredWeather;
-  const { planDays, formatPlanText, formatMultiDayText, formatMinutes, formatCostRange, COST_LABELS } = window.BoredPlanner;
+  const { planDays, formatPlanText, formatMultiDayText, formatMinutes, formatCostRange, encodePlans, decodePlans, COST_LABELS } = window.BoredPlanner;
 
   const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme' };
   const RECENT_LIMIT = 8; // avoid repeating the last N picks in this session
@@ -224,6 +224,8 @@
   let planBuiltOnce = false;
   // Dates of the long weekend the user chose to plan, or null for plain "Day N" labels.
   let weekendDates = null;
+  // The 'YYYY-MM-DD' dates behind the plan on screen, if it has any (used when sharing).
+  let lastDates = null;
 
   function planOptionsFromForm(avoidIds) {
     const liveRain = weatherState.known && weatherState.isRaining && !weatherState.ignoreWeather;
@@ -286,7 +288,9 @@
       return;
     }
 
-    const labels = weekendDates && requestedDays <= weekendDates.length ? weekendDates.slice(0, requestedDays).map(dayLabel) : [];
+    const dates = weekendDates && requestedDays <= weekendDates.length ? weekendDates.slice(0, requestedDays) : null;
+    const labels = dates ? dates.map(dayLabel) : [];
+    lastDates = dates;
     lastPlans = plans;
     lastPlanText = plans.length === 1 ? formatPlanText(plans[0]) : formatMultiDayText(plans, labels);
 
@@ -308,6 +312,7 @@
         <div class="actions">
           <button data-action="shuffle">Shuffle</button>
           <button data-action="share">Share / copy</button>
+          <button data-action="link">Copy link</button>
           <button data-action="save">Save plan</button>
         </div>
         <span id="plan-status" class="muted-note" role="status"></span>
@@ -320,29 +325,79 @@
     const options = planOptionsFromForm(avoidIds);
     const days = Number(el('plan-days').value);
     planBuiltOnce = true;
+    el('shared-note').hidden = true;
+    clearShareHash();
     renderPlans(planDays(ACTIVITIES, options, days), days, options);
   }
 
-  async function sharePlan() {
-    if (!lastPlanText) return;
+  // The link carries the plan itself in the URL fragment, which browsers never
+  // send to a server, so there is nothing to host and nothing is uploaded.
+  function planLink() {
+    return `${location.href.split('#')[0]}#p=${encodePlans(lastPlans, lastDates)}`;
+  }
+
+  function clearShareHash() {
+    try {
+      if (location.hash.startsWith('#p=')) history.replaceState(null, '', location.href.split('#')[0]);
+    } catch {
+      // older browsers or sandboxed frames; the stale hash is harmless
+    }
+  }
+
+  async function copyText(text, okMessage) {
     const status = el('plan-status');
+    try {
+      await navigator.clipboard.writeText(text);
+      status.textContent = okMessage;
+    } catch {
+      status.textContent = 'Could not copy automatically. Select and copy the text below.';
+      const box = el('plan-fallback');
+      box.value = text;
+      box.hidden = false;
+    }
+  }
+
+  async function sharePlan() {
+    if (lastPlans.length === 0) return;
+    const text = `${lastPlanText}\n\nOpen this plan in the app: ${planLink()}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'My Bored SG plan', text: lastPlanText });
+        await navigator.share({ title: 'My Bored SG plan', text });
         return;
       } catch (err) {
         if (err && err.name === 'AbortError') return;
       }
     }
-    try {
-      await navigator.clipboard.writeText(lastPlanText);
-      status.textContent = 'Copied. Paste it into WhatsApp or Notes.';
-    } catch {
-      status.textContent = 'Could not copy automatically. Select and copy the text below.';
-      const box = el('plan-fallback');
-      box.value = lastPlanText;
-      box.hidden = false;
+    copyText(text, 'Copied with a link. Paste it into WhatsApp or Notes.');
+  }
+
+  // Opens a plan from a shared link, if the page was opened with one. Returns
+  // true when a plan was shown.
+  function openSharedPlan() {
+    if (!location.hash.startsWith('#p=')) return false;
+    const note = el('shared-note');
+    const decoded = decodePlans(location.hash.slice(3), ACTIVITIES);
+    // Mark the planner as built first so opening it doesn't replace the shared plan (or clear the link).
+    if (decoded) planBuiltOnce = true;
+    document.querySelector('[data-mode="plan"]').click();
+    note.hidden = false;
+    if (!decoded) {
+      note.textContent = "That shared plan link couldn't be opened. It may be cut off, or made with a different version of the app. Build your own below.";
+      return false;
     }
+    const first = decoded.plans[0];
+    const setIfOption = (id, value) => {
+      const select = el(id);
+      if ([...select.options].some((o) => o.value === String(value))) select.value = String(value);
+    };
+    setIfOption('plan-time', first.windowMinutes);
+    setIfOption('plan-budget', first.budget);
+    setIfOption('plan-days', decoded.plans.length);
+    el('plan-rainproof').checked = first.rainProof;
+    weekendDates = decoded.dates;
+    note.textContent = 'You are viewing a plan someone shared with you. Change anything below and tap "Build my plan" to make your own.';
+    renderPlans(decoded.plans, decoded.plans.length, { daypart: 'day' });
+    return true;
   }
 
   function savePlan() {
@@ -396,6 +451,7 @@
     const action = button.dataset.action;
     if (action === 'shuffle') buildAndRenderPlan(lastPlans.flatMap((p) => p.stops.map((s) => s.id)));
     else if (action === 'share') sharePlan();
+    else if (action === 'link') copyText(planLink(), 'Link copied.');
     else if (action === 'save') savePlan();
   });
 
@@ -527,6 +583,7 @@
   renderStats();
   renderSavedPlans();
   renderHolidayBanner();
+  openSharedPlan();
   renderWeatherStatus();
 
   fetchSingaporeWeather()

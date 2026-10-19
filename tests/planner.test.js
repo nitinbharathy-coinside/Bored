@@ -354,3 +354,70 @@ test('formatMultiDayText labels each day, uses dates when given, and carries the
   assert.equal(text.split('opening hours are not checked').length - 1, 1);
   assert.ok(planner.formatMultiDayText(plans).includes('Day 1:'));
 });
+
+test('encodePlans/decodePlans round-trips stops, backups, totals and dates', () => {
+  const dates = ['2026-11-07', '2026-11-08', '2026-11-09'];
+  for (let seed = 1; seed <= 30; seed++) {
+    const plans = planner.planDays(ACTIVITIES, { windowMinutes: 240, budget: 50, daypart: 'day', who: seed % 2 ? 'any' : 'group' }, 3, mulberry32(seed));
+    const code = planner.encodePlans(plans, dates);
+    assert.match(code, /^[A-Za-z0-9_-]+$/, 'must be URL-safe');
+    const back = planner.decodePlans(code, ACTIVITIES);
+    assert.deepEqual(back.dates, dates);
+    assert.equal(back.plans.length, plans.length);
+    plans.forEach((plan, i) => {
+      const got = back.plans[i];
+      assert.deepEqual(got.stops.map((s) => s.id), plan.stops.map((s) => s.id));
+      assert.deepEqual(
+        Object.fromEntries(Object.entries(got.backups).map(([k, b]) => [k, b && b.id])),
+        Object.fromEntries(Object.entries(plan.backups).map(([k, b]) => [k, b && b.id]))
+      );
+      for (const key of ['legs', 'totalMinutes', 'travelMinutes', 'costMin', 'costMax', 'windowMinutes', 'budget', 'rainProof']) {
+        assert.deepEqual(got[key], plan[key], `${key} seed ${seed}`);
+      }
+    });
+  }
+});
+
+test('encodePlans omits dates when there are none and rain-proof survives the trip', () => {
+  const plans = planner.planDays(ACTIVITIES, { windowMinutes: 180, budget: 20, daypart: 'day', rainProof: true }, 1, mulberry32(2));
+  const back = planner.decodePlans(planner.encodePlans(plans), ACTIVITIES);
+  assert.equal(back.dates, null);
+  assert.equal(back.plans[0].rainProof, true);
+  assert.deepEqual(back.plans[0].backups, {});
+});
+
+test('decodePlans rejects garbage, wrong versions, unknown ids and out-of-range values', () => {
+  const enc = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const good = { v: 1, w: 240, b: 50, r: 0, p: [{ s: [1, 2], k: {} }] };
+  assert.ok(planner.decodePlans(enc(good), ACTIVITIES), 'baseline must decode');
+
+  const bad = {
+    'empty string': '',
+    'not base64 json': 'abc',
+    'json but not a plan': enc([1, 2, 3]),
+    'wrong version': enc({ ...good, v: 2 }),
+    'unknown stop id': enc({ ...good, p: [{ s: [99999], k: {} }] }),
+    'string id': enc({ ...good, p: [{ s: ['1'], k: {} }] }),
+    'too many stops': enc({ ...good, p: [{ s: [1, 2, 3, 4, 5], k: {} }] }),
+    'no stops': enc({ ...good, p: [{ s: [], k: {} }] }),
+    'too many days': enc({ ...good, p: [good.p[0], good.p[0], good.p[0], good.p[0]] }),
+    'unknown backup id': enc({ ...good, p: [{ s: [1], k: { 1: 99999 } }] }),
+    'backup for a stop not in plan': enc({ ...good, p: [{ s: [1], k: { 2: 3 } }] }),
+    'negative budget': enc({ ...good, b: -1 }),
+    'zero window': enc({ ...good, w: 0 }),
+    'bad date': enc({ ...good, d: ['not-a-date'] }),
+    'dates length mismatch': enc({ ...good, d: ['2026-11-07', '2026-11-08'] }),
+    'too long': 'A'.repeat(5000),
+  };
+  for (const [name, code] of Object.entries(bad)) assert.equal(planner.decodePlans(code, ACTIVITIES), null, name);
+  assert.equal(planner.decodePlans(null, ACTIVITIES), null);
+  assert.equal(planner.decodePlans(undefined, ACTIVITIES), null);
+});
+
+test('a decoded plan can never smuggle markup: every field comes from the dataset', () => {
+  const enc = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const back = planner.decodePlans(enc({ v: 1, w: 240, b: 50, r: 0, p: [{ s: [1], k: {}, text: '<script>x</script>' }], text: '<img onerror=x>' }), ACTIVITIES);
+  assert.ok(back);
+  assert.equal(JSON.stringify(back).includes('<script>'), false);
+  assert.equal(JSON.stringify(back).includes('onerror'), false);
+});

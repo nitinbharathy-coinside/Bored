@@ -236,6 +236,93 @@
     return plans;
   }
 
+  // ---- Shareable links ----
+  // A plan is shared as the ids of its stops and rain backups, not as text, so
+  // the link stays short and the receiving app rebuilds the plan from its own
+  // dataset. A link that mentions an id this version doesn't know is rejected
+  // rather than silently changed.
+  const SHARE_VERSION = 1;
+  const MAX_SHARED_DAYS = 3;
+
+  function toBase64Url(text) {
+    return btoa(text).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  function fromBase64Url(code) {
+    const padded = code.replace(/-/g, '+').replace(/_/g, '/');
+    return atob(padded + '='.repeat((4 - (padded.length % 4)) % 4));
+  }
+
+  // `dates` is optional: the 'YYYY-MM-DD' labels of a long-weekend plan.
+  function encodePlans(plans, dates) {
+    const first = plans[0];
+    const data = {
+      v: SHARE_VERSION,
+      w: first.windowMinutes,
+      b: first.budget,
+      r: first.rainProof ? 1 : 0,
+      p: plans.map((plan) => ({
+        s: plan.stops.map((stop) => stop.id),
+        k: Object.fromEntries(Object.entries(plan.backups).map(([id, backup]) => [id, backup ? backup.id : 0])),
+      })),
+    };
+    if (dates) data.d = dates;
+    return toBase64Url(JSON.stringify(data));
+  }
+
+  const isId = (n) => Number.isInteger(n) && n > 0;
+
+  // Returns { plans, dates } or null for anything malformed, out of range, or
+  // naming an activity this version doesn't have.
+  function decodePlans(code, activities) {
+    try {
+      if (typeof code !== 'string' || code.length === 0 || code.length > 4000) return null;
+      const data = JSON.parse(fromBase64Url(code));
+      if (!data || data.v !== SHARE_VERSION) return null;
+      if (!Number.isInteger(data.w) || data.w < 30 || data.w > 1440) return null;
+      if (!Number.isInteger(data.b) || data.b < 0 || data.b > 1000) return null;
+      if (!Array.isArray(data.p) || data.p.length === 0 || data.p.length > MAX_SHARED_DAYS) return null;
+      let dates = null;
+      if (data.d !== undefined) {
+        if (!Array.isArray(data.d) || data.d.length !== data.p.length) return null;
+        if (!data.d.every((d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d))) return null;
+        dates = data.d;
+      }
+      const byId = new Map(activities.map((a) => [a.id, a]));
+      const plans = [];
+      for (const day of data.p) {
+        if (!day || !Array.isArray(day.s) || day.s.length === 0 || day.s.length > MAX_STOPS) return null;
+        if (!day.s.every((id) => isId(id) && byId.has(id))) return null;
+        const stops = day.s.map((id) => byId.get(id));
+        const backups = {};
+        const k = day.k && typeof day.k === 'object' && !Array.isArray(day.k) ? day.k : {};
+        for (const [stopId, backupId] of Object.entries(k)) {
+          if (!stops.some((s) => String(s.id) === stopId)) return null;
+          if (backupId === 0) backups[stopId] = null;
+          else if (isId(backupId) && byId.has(backupId)) backups[stopId] = byId.get(backupId);
+          else return null;
+        }
+        const totals = measure(stops);
+        plans.push({
+          stops,
+          legs: totals.legs,
+          activityMinutes: totals.activityMinutes,
+          travelMinutes: totals.travelMinutes,
+          totalMinutes: totals.totalMinutes,
+          costMin: totals.costMin,
+          costMax: totals.costMax,
+          windowMinutes: data.w,
+          budget: data.b,
+          rainProof: data.r === 1,
+          backups,
+        });
+      }
+      return { plans, dates };
+    } catch {
+      return null;
+    }
+  }
+
   function formatMinutes(minutes) {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -301,6 +388,8 @@
     formatCostRange,
     formatPlanText,
     formatMultiDayText,
+    encodePlans,
+    decodePlans,
   };
 
   if (typeof module !== 'undefined') module.exports = plannerApi;
