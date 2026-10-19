@@ -17,10 +17,14 @@ once loaded once (it's an installable PWA).
 
 ## What's Singapore-specific about it
 
-- **74 real Singapore activities** across hawker food, parks and nature,
-  heritage, paid attractions, water/active, malls and rainy-day indoor
+- **74 hand-written Singapore activities** across hawker food, parks and
+  nature, heritage, paid attractions, water/active, malls and rainy-day indoor
   options, neighbourhood walks, and fitness — each tagged with a part of the
   island (Central / East / West / North / North-East / South / Islandwide).
+  They were written from general knowledge, not pulled from a database, and
+  only two entries (73, 74) were checked against outside sources. Prices,
+  durations and rain-sensitivity are judgement calls, and venues change, so
+  treat the list as unverified.
 - **Live weather awareness.** On load, the app fetches NEA's 2-hour weather
   forecast (via `data.gov.sg`) and, if enough of Singapore's ~47 forecast
   areas are reporting rain, automatically hides outdoor activities that would
