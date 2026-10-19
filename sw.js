@@ -1,12 +1,13 @@
 // Minimal offline cache for the app shell. Bump CACHE_NAME when shipping
 // changes to any cached file so clients pick up the new version.
-const CACHE_NAME = 'bored-v6';
+const CACHE_NAME = 'bored-v7';
 const APP_SHELL = [
   './',
   'index.html',
   'style.css',
   'app.js',
   'filter.js',
+  'deck.js',
   'planner.js',
   'data.js',
   'holidays.js',

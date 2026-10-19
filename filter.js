@@ -85,6 +85,23 @@ function pickActivity(activities, filters, recentIds, rng = Math.random, weather
   return candidates[Math.floor(rng() * candidates.length)];
 }
 
+// Fisher-Yates shuffle into a new array; `rng` is injectable for tests.
+function shuffle(items, rng = Math.random) {
+  const out = items.slice();
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Every activity matching the user's own filters, in random order. Weather is
+// deliberately not applied here: the deck applies it live, so a forecast that
+// arrives late doesn't force a rebuild.
+function buildDeck(activities, filters, rng = Math.random) {
+  return shuffle(activities.filter((a) => matchesFilters(a, filters)), rng);
+}
+
 // Given an ascending array of ms timestamps, returns the current daily streak:
 // the number of consecutive calendar days, counting back from today, that
 // have at least one entry. A gap of more than one day breaks the streak.
@@ -111,7 +128,7 @@ function computeStreak(timestamps, now = Date.now()) {
   return streak;
 }
 
-const filterApi = { COST_ORDER, WHO_VALUES, nearestArea, matchesFilters, passesWeather, filterActivities, pickActivity, computeStreak };
+const filterApi = { COST_ORDER, WHO_VALUES, nearestArea, shuffle, buildDeck, matchesFilters, passesWeather, filterActivities, pickActivity, computeStreak };
 
 if (typeof module !== 'undefined') module.exports = filterApi;
 if (typeof window !== 'undefined') window.BoredFilter = filterApi;

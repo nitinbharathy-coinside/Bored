@@ -2,8 +2,13 @@
 
 A tiny, dependency-free web app with two modes:
 
-- **Quick pick** (free): tell it your time, budget, energy and part of
-  Singapore, and it gives you one concrete thing to do.
+- **Quick pick** (free): a stack of swipe cards. Swipe right to save, left to
+  skip (or use the buttons or the arrow keys), undo the last card, and tap
+  "Did it" to log it. Filters (time, budget, energy, indoor/outdoor, area,
+  who's going) sit behind one strip that shows what is applied. Each match
+  appears once until you've seen them all, then you can start over. If it is
+  raining, outdoor cards are hidden and the end screen says how many are
+  waiting.
 - **Plan a day** (Pro preview): tell it how long you have and what you want to
   spend, and it builds a multi-stop plan that fits both, with a rain backup for
   every outdoor stop.
@@ -143,6 +148,8 @@ stable URL you can open on any device.
 - `data.js` — the activity dataset (`ACTIVITIES` array, 74 Singapore entries)
 - `filter.js` — pure, DOM-free logic (filtering, picking, streak math, and
   weather-based filtering) — unit tested
+- `deck.js` — the Quick pick card stack (no repeats, undo, rain-hidden cards
+  that come back) — pure and unit tested
 - `planner.js` — the day planner (eligibility, ordering, scoring, rain
   backups, shareable text) — pure, seedable and unit tested, including a
   400-request property test against the real dataset

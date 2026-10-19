@@ -31,7 +31,10 @@
     </nav>
 
     <div id="mode-quick" role="tabpanel">
-      <section class="filters">
+      <button type="button" id="filters-toggle" class="filters-strip" aria-expanded="false" aria-controls="quick-filters">
+        <span id="filters-summary">No filters</span> <span aria-hidden="true">Filters ▾</span>
+      </button>
+      <section id="quick-filters" class="filters" hidden>
         <label>
           Time
           <select id="filter-time">
@@ -94,15 +97,15 @@
       </section>
 
       <section class="card-area">
-        <div id="card" class="card empty">
-          <p>Set your filters, then hit the button.</p>
+        <div id="deck" class="deck" aria-label="Activity cards"></div>
+        <p id="deck-status" class="deck-status" role="status"></p>
+        <div class="actions deck-actions">
+          <button id="btn-skip" aria-label="Skip this one (swipe left)">✕ Skip</button>
+          <button id="btn-undo" aria-label="Undo the last card" disabled>↶ Undo</button>
+          <button id="btn-save" aria-label="Save this one (swipe right)">♥ Save</button>
+          <button id="btn-done">Did it ✓</button>
         </div>
-        <div class="actions">
-          <button id="btn-surprise" class="primary">Give me something</button>
-          <button id="btn-skip" disabled>Not now</button>
-          <button id="btn-save" disabled>Save</button>
-          <button id="btn-done" disabled>Did it ✓</button>
-        </div>
+        <p class="muted-note">Swipe right to save, left to skip. Arrow keys work too.</p>
       </section>
 
       <nav class="tabs">
@@ -239,6 +242,7 @@
 
   <script src="data.js"></script>
   <script src="filter.js"></script>
+  <script src="deck.js"></script>
   <script src="planner.js"></script>
   <script src="holidays.js"></script>
   <script src="weather.js"></script>

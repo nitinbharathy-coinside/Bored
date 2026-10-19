@@ -1,11 +1,13 @@
 (function () {
-  const { pickActivity, computeStreak, nearestArea } = window.BoredFilter;
+  const { buildDeck, passesWeather, computeStreak, nearestArea } = window.BoredFilter;
+  const { createDeck } = window.BoredDeck;
   const { isPublicHoliday, nextLongWeekend } = window.BoredHolidays;
   const { fetchSingaporeWeather } = window.BoredWeather;
   const { planDays, formatPlanText, formatMultiDayText, formatMinutes, formatCostRange, encodePlans, decodePlans, COST_LABELS } = window.BoredPlanner;
 
   const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme' };
-  const RECENT_LIMIT = 8; // avoid repeating the last N picks in this session
+  const SWIPE_MIN_PX = 80; // drag distance that counts as a swipe
+  const VISIBLE_CARDS = 3;
 
   const el = (id) => document.getElementById(id);
   const filterTime = el('filter-time');
@@ -14,8 +16,9 @@
   const filterLocation = el('filter-location');
   const filterArea = el('filter-area');
   const filterWho = el('filter-who');
-  const card = el('card');
-  const btnSurprise = el('btn-surprise');
+  const deckEl = el('deck');
+  const deckStatus = el('deck-status');
+  const btnUndo = el('btn-undo');
   const btnSkip = el('btn-skip');
   const btnSave = el('btn-save');
   const btnDone = el('btn-done');
@@ -24,8 +27,6 @@
   const holidayBanner = el('holiday-banner');
   const btnShowAnyway = el('btn-show-anyway');
 
-  let current = null;
-  let recentIds = [];
   // `known` is true only once a fetch has actually resolved with real data.
   // `checked` is true once a fetch attempt has settled at all (success or
   // failure) — this is what lets the status line distinguish "still
@@ -72,29 +73,173 @@
     return d.innerHTML;
   }
 
-  function renderCard(activity) {
-    if (!activity) {
-      card.className = 'card empty';
-      card.innerHTML = '<p>Nothing matches those filters right now. Try loosening one, or tap "show outdoor anyway" if it\'s the rain filter.</p>';
-      btnSkip.disabled = true;
-      btnSave.disabled = true;
-      btnDone.disabled = true;
-      return;
-    }
-    card.className = 'card';
-    card.innerHTML = `<div><span class="category">${escapeHtml(activity.tags[0])}</span><p>${escapeHtml(activity.text)}</p><span class="meta">${activity.area} · ${activity.minMinutes} min · ${COST_LABELS[activity.cost]}</span></div>`;
-    btnSkip.disabled = false;
-    btnSave.disabled = false;
-    btnDone.disabled = false;
+  // ---- Quick pick: swipeable card stack ----
+  let deck = createDeck([], () => true);
+  let actions = []; // what was done to each taken card, newest last, so Undo can reverse it
+  let animating = false;
+
+  function startDeck() {
+    deck = createDeck(buildDeck(ACTIVITIES, currentFilters()), (a) => passesWeather(a, currentWeatherContext()));
+    actions = [];
+    deckStatus.textContent = '';
+    renderDeck();
   }
 
-  function draw() {
-    current = pickActivity(ACTIVITIES, currentFilters(), recentIds, Math.random, currentWeatherContext());
-    if (current) {
-      recentIds.push(current.id);
-      if (recentIds.length > RECENT_LIMIT) recentIds.shift();
+  function cardHtml(activity, depth) {
+    const style = depth === 0 ? '' : ` style="transform: translateY(${depth * 10}px) scale(${1 - depth * 0.04}); z-index: ${10 - depth};"`;
+    const labels = depth === 0 ? '<span class="stamp stamp-save" aria-hidden="true">SAVE</span><span class="stamp stamp-skip" aria-hidden="true">SKIP</span>' : '';
+    return `<div class="swipe-card${depth === 0 ? ' top' : ''}"${style}>${labels}<div><span class="category">${escapeHtml(activity.tags[0])}</span><p>${escapeHtml(activity.text)}</p><span class="meta">${activity.area} · ${activity.minMinutes} min · ${COST_LABELS[activity.cost]}</span></div></div>`;
+  }
+
+  function emptyDeckHtml() {
+    if (deck.size === 0) {
+      return '<div class="deck-empty"><p>Nothing matches those filters. Try loosening one.</p></div>';
     }
-    renderCard(current);
+    if (deck.hiddenCount() > 0) {
+      return `<div class="deck-empty"><p>The ${deck.hiddenCount()} left are outdoor, and it's raining.</p><button type="button" id="btn-show-anyway-deck" class="link-btn">Show outdoor anyway</button></div>`;
+    }
+    return `<div class="deck-empty"><p>You've seen all ${deck.size} that match.</p><button type="button" id="btn-restart" class="primary">Start over</button></div>`;
+  }
+
+  function renderDeck() {
+    const cards = deck.peek(VISIBLE_CARDS);
+    deckEl.innerHTML = cards.length ? cards.map((a, i) => cardHtml(a, i)).reverse().join('') : emptyDeckHtml();
+    const has = cards.length > 0;
+    el('btn-skip').disabled = !has;
+    el('btn-save').disabled = !has;
+    el('btn-done').disabled = !has;
+    btnUndo.disabled = !deck.canUndo();
+  }
+
+  // Saves unless already saved; says what actually happened.
+  function saveActivity(activity) {
+    const saved = loadList(STORAGE_KEYS.saved);
+    if (saved.some((i) => i.id === activity.id)) return 'already';
+    saved.push({ id: activity.id, text: activity.text });
+    if (!saveList(STORAGE_KEYS.saved, saved)) return 'failed';
+    renderSaved();
+    return 'saved';
+  }
+
+  // action: 'skip' | 'save' | 'done'. Takes the top card and applies it.
+  function decide(action) {
+    const activity = deck.take();
+    if (!activity) return;
+    const entry = { id: activity.id, action, addedSaved: false, doneAt: null };
+    if (action === 'save') {
+      const result = saveActivity(activity);
+      entry.addedSaved = result === 'saved';
+      deckStatus.textContent =
+        result === 'saved' ? 'Saved.' : result === 'already' ? 'Already in your saved list.' : 'Could not save: this browser is blocking storage (private mode?).';
+    } else if (action === 'done') {
+      const done = loadList(STORAGE_KEYS.done);
+      entry.doneAt = Date.now();
+      done.push({ id: activity.id, text: activity.text, doneAt: entry.doneAt });
+      deckStatus.textContent = saveList(STORAGE_KEYS.done, done) ? 'Logged as done.' : 'Could not log it: this browser is blocking storage (private mode?).';
+      renderDone();
+      renderStats();
+    } else {
+      deckStatus.textContent = '';
+    }
+    actions.push(entry);
+    renderDeck();
+  }
+
+  function undoLast() {
+    const entry = actions.pop();
+    if (!entry || !deck.undo()) return;
+    // Reverse only what that swipe changed, never an item that was already saved before it.
+    if (entry.action === 'save' && entry.addedSaved) {
+      saveList(STORAGE_KEYS.saved, loadList(STORAGE_KEYS.saved).filter((i) => i.id !== entry.id));
+      renderSaved();
+    } else if (entry.action === 'done') {
+      saveList(STORAGE_KEYS.done, loadList(STORAGE_KEYS.done).filter((d) => !(d.id === entry.id && d.doneAt === entry.doneAt)));
+      renderDone();
+      renderStats();
+    }
+    deckStatus.textContent = 'Undone.';
+    renderDeck();
+  }
+
+  const reducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Animates the top card off-screen, then applies the decision.
+  function flingTop(action) {
+    const top = deckEl.querySelector('.swipe-card.top');
+    if (!top || animating) return;
+    if (reducedMotion()) {
+      decide(action);
+      return;
+    }
+    animating = true;
+    const dir = action === 'save' ? 1 : -1;
+    top.classList.remove('dragging');
+    top.style.transform = `translateX(${dir * deckEl.offsetWidth * 1.3}px) rotate(${dir * 18}deg)`;
+    top.style.opacity = '0';
+    setTimeout(() => {
+      animating = false;
+      decide(action);
+    }, 220);
+  }
+
+  // ---- drag handling (pointer events cover touch, mouse and pen) ----
+  let drag = null;
+
+  function applyDrag(card, dx) {
+    card.style.transform = `translateX(${dx}px) rotate(${dx / 20}deg)`;
+    const strength = Math.min(1, Math.abs(dx) / SWIPE_MIN_PX);
+    card.querySelector('.stamp-save').style.opacity = dx > 0 ? strength : 0;
+    card.querySelector('.stamp-skip').style.opacity = dx < 0 ? strength : 0;
+  }
+
+  deckEl.addEventListener('pointerdown', (event) => {
+    const top = deckEl.querySelector('.swipe-card.top');
+    if (!top || animating || event.button > 0 || !top.contains(event.target)) return;
+    drag = { id: event.pointerId, startX: event.clientX, dx: 0, card: top };
+    top.setPointerCapture(event.pointerId);
+    top.classList.add('dragging');
+  });
+
+  deckEl.addEventListener('pointermove', (event) => {
+    if (!drag || event.pointerId !== drag.id) return;
+    drag.dx = event.clientX - drag.startX;
+    applyDrag(drag.card, drag.dx);
+  });
+
+  function endDrag(event, cancelled) {
+    if (!drag || event.pointerId !== drag.id) return;
+    const { card, dx } = drag;
+    drag = null;
+    card.classList.remove('dragging');
+    const threshold = Math.max(SWIPE_MIN_PX, deckEl.offsetWidth * 0.25);
+    if (!cancelled && Math.abs(dx) >= threshold) {
+      flingTop(dx > 0 ? 'save' : 'skip');
+    } else {
+      card.style.transform = '';
+      card.querySelector('.stamp-save').style.opacity = 0;
+      card.querySelector('.stamp-skip').style.opacity = 0;
+    }
+  }
+  deckEl.addEventListener('pointerup', (event) => endDrag(event, false));
+  deckEl.addEventListener('pointercancel', (event) => endDrag(event, true));
+
+  deckEl.addEventListener('click', (event) => {
+    if (event.target.closest('#btn-restart')) startDeck();
+    else if (event.target.closest('#btn-show-anyway-deck')) {
+      weatherState.ignoreWeather = true;
+      renderWeatherBanner();
+      renderDeck();
+    }
+  });
+
+  // Filters live behind one strip that shows what is currently applied.
+  function filtersSummary() {
+    const parts = [...document.querySelectorAll('#quick-filters select')].filter((sel) => sel.value !== 'any').map((sel) => sel.selectedOptions[0].textContent.trim());
+    return parts.length ? parts.join(' · ') : 'No filters';
+  }
+
+  function updateFiltersSummary() {
+    el('filters-summary').textContent = filtersSummary();
   }
 
   function renderSaved() {
@@ -162,7 +307,7 @@
       el('btn-show-anyway-inner').addEventListener('click', () => {
         weatherState.ignoreWeather = true;
         renderWeatherBanner();
-        draw();
+        renderDeck();
       });
     } else if (weatherState.isRaining && weatherState.ignoreWeather) {
       weatherBanner.hidden = false;
@@ -170,7 +315,7 @@
       el('btn-hide-outdoor-inner').addEventListener('click', () => {
         weatherState.ignoreWeather = false;
         renderWeatherBanner();
-        draw();
+        renderDeck();
       });
     } else {
       weatherBanner.hidden = true;
@@ -517,33 +662,29 @@
     });
   });
 
-  btnSurprise.addEventListener('click', draw);
+  el('btn-skip').addEventListener('click', () => flingTop('skip'));
+  el('btn-save').addEventListener('click', () => flingTop('save'));
+  el('btn-done').addEventListener('click', () => decide('done'));
+  btnUndo.addEventListener('click', undoLast);
 
-  btnSkip.addEventListener('click', draw);
-
-  btnSave.addEventListener('click', () => {
-    if (!current) return;
-    const saved = loadList(STORAGE_KEYS.saved);
-    if (!saved.some((i) => i.id === current.id)) {
-      saved.push({ id: current.id, text: current.text });
-      saveList(STORAGE_KEYS.saved, saved);
-      renderSaved();
-    }
+  // Left/right arrows swipe the top card, unless the user is in a form control.
+  document.addEventListener('keydown', (event) => {
+    if (el('mode-quick').hidden || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName)) return;
+    if (event.key === 'ArrowRight') flingTop('save');
+    else if (event.key === 'ArrowLeft') flingTop('skip');
   });
 
-  btnDone.addEventListener('click', () => {
-    if (!current) return;
-    const done = loadList(STORAGE_KEYS.done);
-    done.push({ id: current.id, text: current.text, doneAt: Date.now() });
-    saveList(STORAGE_KEYS.done, done);
-    renderDone();
-    renderStats();
-    draw();
+  el('filters-toggle').addEventListener('click', () => {
+    const panel = el('quick-filters');
+    panel.hidden = !panel.hidden;
+    el('filters-toggle').setAttribute('aria-expanded', String(!panel.hidden));
   });
 
   [filterTime, filterCost, filterEnergy, filterLocation, filterArea, filterWho].forEach((f) =>
     f.addEventListener('change', () => {
-      if (current) draw();
+      updateFiltersSummary();
+      startDeck();
     })
   );
 
@@ -583,6 +724,8 @@
   renderStats();
   renderSavedPlans();
   renderHolidayBanner();
+  updateFiltersSummary();
+  startDeck();
   openSharedPlan();
   renderWeatherStatus();
 
@@ -594,7 +737,7 @@
       weatherState.checked = true;
       renderWeatherBanner();
       renderWeatherStatus();
-      if (current) draw();
+      renderDeck();
     })
     .catch(() => {
       // NEA API unreachable, blocked, or shape changed — the app still
@@ -604,5 +747,6 @@
       weatherState.checked = true;
       renderWeatherBanner();
       renderWeatherStatus();
+      renderDeck();
     });
 })();
