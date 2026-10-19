@@ -31,11 +31,13 @@
     return 50;
   }
 
-  // `options`: { windowMinutes, budget, energy, area, daypart, rainProof }
+  // `options`: { windowMinutes, budget, energy, area, daypart, rainProof, who, excludeIds }
   function eligibleActivities(activities, options) {
-    const { windowMinutes, budget, energy = 'any', area = 'any', daypart = 'day', rainProof = false } = options;
+    const { windowMinutes, budget, energy = 'any', area = 'any', daypart = 'day', rainProof = false, who = 'any', excludeIds = [] } = options;
     return activities.filter((a) => {
       if (a.skipInPlans) return false;
+      if (excludeIds.includes(a.id)) return false;
+      if (who !== 'any' && !(a.suits && a.suits.includes(who))) return false;
       if (a.minMinutes > windowMinutes) return false;
       if (COST_RANGE[a.cost].max > budget) return false;
       if (energy !== 'any' && a.energy !== energy) return false;
@@ -217,6 +219,23 @@
     return buildPlan(best.ordered, best.totals, activities, options);
   }
 
+  // Builds up to `days` plans for a multi-day trip. No activity appears twice
+  // across the days, counting rain backups, so a rained-out day never sends
+  // someone to a place they are visiting on another day. If the eligible pool
+  // runs out first, fewer days are returned; the caller should say so.
+  function planDays(activities, options, days, rng = Math.random) {
+    const plans = [];
+    const used = new Set();
+    for (let d = 0; d < days; d++) {
+      const plan = planDay(activities, { ...options, excludeIds: [...used] }, rng);
+      if (!plan) break;
+      plans.push(plan);
+      plan.stops.forEach((s) => used.add(s.id));
+      Object.values(plan.backups).forEach((b) => b && used.add(b.id));
+    }
+    return plans;
+  }
+
   function formatMinutes(minutes) {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
@@ -234,9 +253,13 @@
     return `${a.text} (${a.area}, ~${a.minMinutes} min, ${COST_LABELS[a.cost]})`;
   }
 
-  function formatPlanText(plan) {
+  // `opts.title` replaces the first line (used for "Day 2" headings) and
+  // `opts.footer === false` leaves out the caveat line so a multi-day text can
+  // carry it once at the end.
+  function formatPlanText(plan, opts = {}) {
     const budgetText = plan.budget === 0 ? 'free activities only' : `up to $${plan.budget} per person`;
-    const lines = [`Bored SG plan: ${formatMinutes(plan.windowMinutes)} available, ${budgetText}`];
+    const summary = `${formatMinutes(plan.windowMinutes)} available, ${budgetText}`;
+    const lines = [opts.title ? `${opts.title}: ${summary}` : `Bored SG plan: ${summary}`];
     plan.stops.forEach((stop, i) => {
       if (i > 0) lines.push(`   ~${plan.legs[i - 1]} min travel`);
       lines.push(`${i + 1}. ${describe(stop)}`);
@@ -251,8 +274,19 @@
     });
     const costText = plan.costMax === 0 ? 'Free.' : `Roughly ${formatCostRange(plan.costMin, plan.costMax)} per person.`;
     lines.push(`About ${formatMinutes(plan.totalMinutes)} including ~${plan.travelMinutes} min travel. ${costText}`);
-    lines.push('Travel times are rough and opening hours are not checked. Confirm before you go.');
+    if (opts.footer !== false) lines.push(PLAN_CAVEAT);
     return lines.join('\n');
+  }
+
+  const PLAN_CAVEAT = 'Travel times are rough and opening hours are not checked. Confirm before you go.';
+
+  // `labels[i]` names day i (for example "Sat 7 Nov"); falls back to "Day N".
+  function formatMultiDayText(plans, labels = []) {
+    const blocks = plans.map((plan, i) => {
+      const name = labels[i] ? `Day ${i + 1} (${labels[i]})` : `Day ${i + 1}`;
+      return formatPlanText(plan, { title: name, footer: false });
+    });
+    return [`Bored SG: ${plans.length}-day plan`, ...blocks, PLAN_CAVEAT].join('\n\n');
   }
 
   const plannerApi = {
@@ -262,9 +296,11 @@
     eligibleActivities,
     findRainBackup,
     planDay,
+    planDays,
     formatMinutes,
     formatCostRange,
     formatPlanText,
+    formatMultiDayText,
   };
 
   if (typeof module !== 'undefined') module.exports = plannerApi;

@@ -4,8 +4,12 @@
 // Ascending price bands, used to turn the "cost" filter into a max-budget cutoff.
 const COST_ORDER = ['free', 'under10', '10to30', '30plus'];
 
+// Who is going. Activities opt in with an optional `suits` array; an activity
+// with no `suits` is never offered when a specific group is chosen.
+const WHO_VALUES = ['kids', 'easy', 'date', 'group'];
+
 function matchesFilters(activity, filters) {
-  const { time = 'any', cost = 'any', energy = 'any', location = 'any', area = 'any' } = filters || {};
+  const { time = 'any', cost = 'any', energy = 'any', location = 'any', area = 'any', who = 'any' } = filters || {};
 
   if (time !== 'any' && activity.minMinutes > Number(time)) return false;
 
@@ -18,8 +22,41 @@ function matchesFilters(activity, filters) {
   if (energy !== 'any' && activity.energy !== energy) return false;
   if (location !== 'any' && activity.location !== 'any' && activity.location !== location) return false;
   if (area !== 'any' && activity.area !== 'Islandwide' && activity.area !== area) return false;
+  if (who !== 'any' && !(activity.suits && activity.suits.includes(who))) return false;
 
   return true;
+}
+
+// Rough centre of each part of the island, used only to guess which region a
+// GPS fix is in. This is a nearest-centre guess, not real region boundaries,
+// so places near a border can land on the wrong side. The UI says so and the
+// user can change the selection.
+const AREA_CENTRES = {
+  Central: [1.32, 103.84],
+  East: [1.33, 103.94],
+  West: [1.345, 103.7],
+  North: [1.42, 103.81],
+  'North-East': [1.385, 103.89],
+};
+const SG_BOUNDS = { minLat: 1.15, maxLat: 1.48, minLng: 103.6, maxLng: 104.1 };
+
+// Returns one of the area names, or null when the coordinates are invalid or
+// clearly outside Singapore.
+function nearestArea(lat, lng) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < SG_BOUNDS.minLat || lat > SG_BOUNDS.maxLat || lng < SG_BOUNDS.minLng || lng > SG_BOUNDS.maxLng) return null;
+  // The south coast, Sentosa and the southern islands sit below the main island.
+  if (lat < 1.268 && lng > 103.78 && lng < 103.9) return 'South';
+  let best = null;
+  let bestDist = Infinity;
+  Object.entries(AREA_CENTRES).forEach(([name, [clat, clng]]) => {
+    const d = (lat - clat) ** 2 + (lng - clng) ** 2;
+    if (d < bestDist) {
+      bestDist = d;
+      best = name;
+    }
+  });
+  return best;
 }
 
 // Weather is handled separately from the user's own filters: it's an
@@ -74,7 +111,7 @@ function computeStreak(timestamps, now = Date.now()) {
   return streak;
 }
 
-const filterApi = { COST_ORDER, matchesFilters, passesWeather, filterActivities, pickActivity, computeStreak };
+const filterApi = { COST_ORDER, WHO_VALUES, nearestArea, matchesFilters, passesWeather, filterActivities, pickActivity, computeStreak };
 
 if (typeof module !== 'undefined') module.exports = filterApi;
 if (typeof window !== 'undefined') window.BoredFilter = filterApi;

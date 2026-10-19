@@ -50,7 +50,39 @@ function isLongWeekendHoliday(dateStr) {
   return day === 1 || day === 5;
 }
 
-const holidaysApi = { SG_PUBLIC_HOLIDAYS_2026, isPublicHoliday, nextPublicHoliday, isLongWeekendHoliday };
+// 'YYYY-MM-DD' plus `n` days, done in UTC so the result doesn't depend on the
+// device's time zone.
+function addDays(dateStr, n) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+// The three days of a long weekend built around a Monday or Friday holiday:
+// Sat-Sun-Mon for a Monday, Fri-Sat-Sun for a Friday. Returns null for any
+// other weekday.
+function longWeekendDates(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  if (day === 1) return [addDays(dateStr, -2), addDays(dateStr, -1), dateStr];
+  if (day === 5) return [dateStr, addDays(dateStr, 1), addDays(dateStr, 2)];
+  return null;
+}
+
+// The next Monday/Friday holiday on or after `fromDate` that is within
+// `withinDays`, with its three long-weekend dates; otherwise null. This looks
+// past a holiday that falls on a Sunday, whose in-lieu Monday is the one that
+// creates the long weekend.
+function nextLongWeekend(fromDate, withinDays = 21, holidays = SG_PUBLIC_HOLIDAYS_2026) {
+  const from = new Date(fromDate);
+  const fromStr = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`;
+  const limit = addDays(fromStr, withinDays);
+  const match = holidays
+    .filter((h) => h.date >= fromStr && h.date <= limit && longWeekendDates(h.date))
+    .sort((a, b) => (a.date < b.date ? -1 : 1))[0];
+  return match ? { ...match, dates: longWeekendDates(match.date) } : null;
+}
+
+const holidaysApi = { SG_PUBLIC_HOLIDAYS_2026, isPublicHoliday, nextPublicHoliday, isLongWeekendHoliday, longWeekendDates, nextLongWeekend };
 
 if (typeof module !== 'undefined') module.exports = holidaysApi;
 if (typeof window !== 'undefined') window.BoredHolidays = holidaysApi;

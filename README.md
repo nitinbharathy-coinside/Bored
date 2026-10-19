@@ -39,6 +39,26 @@ once loaded once (it's an installable PWA).
   $10–$30 / $30+) rather than generic "free/low/paid" labels, and the budget
   filter works as a "up to" cutoff over those bands.
 
+## Near me, who's going, and long weekends
+
+- **Use my location.** Next to each "Part of Singapore" menu. The browser
+  gives one position, the app picks the nearest region centre and selects it.
+  The position is not stored or sent anywhere. It is a nearest-centre guess,
+  not real region boundaries, so places near a border can land on the wrong
+  side; the app says so and you can change it. Outside Singapore it does
+  nothing.
+- **Who's going** (Kids / Easy pace / Date / Group). Driven by an optional
+  `suits` tag on each entry. Those tags are my judgement calls from general
+  knowledge, not checked against venues. "Easy pace" means low effort only:
+  step-free access, queues and shade are not verified. Entries without tags
+  are never shown when a group is chosen, so these modes have fewer picks
+  (17 to 23 entries each).
+- **Multi-day plans (1 to 3 days).** No place repeats across days, counting
+  rain backups. If the filters leave too few places, you get fewer days and
+  the app says so. When a Monday or Friday public holiday is within 21 days,
+  a one-tap "Plan all 3 days" builds the long weekend with real dates. The
+  holiday table only covers 2026.
+
 ## Plan a day (Pro preview)
 
 `planner.js` turns the dataset into a plan: 1 to 4 stops, ordered to keep
@@ -128,8 +148,8 @@ stable URL you can open on any device.
 - `manifest.json`, `icon.svg`, `sw.js` — PWA install + offline support (the
   service worker deliberately never caches cross-origin requests, so live
   weather isn't accidentally served stale forever)
-- `tests/` — unit tests for `filter.js`, `holidays.js`, `weather.js`, and
-  dataset integrity
+- `tests/` — unit tests for `filter.js`, `holidays.js`, `weather.js`,
+  `planner.js`, and dataset integrity
 
 ## Testing
 
@@ -150,6 +170,7 @@ Edit `data.js`. Each entry needs:
   weatherSensitive: true|false,
   area: 'Islandwide'|'Central'|'East'|'West'|'North'|'North-East'|'South',
   tags: ['...'],
+  suits: ['kids','easy','date','group'], // optional: who it suits
   daypart: 'evening',     // optional: only for genuinely evening/night entries
   skipInPlans: true }     // optional: not a schedulable outing; quick pick only
 ```

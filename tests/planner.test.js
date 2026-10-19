@@ -290,3 +290,67 @@ test('formatPlanText describes a free-only budget plainly', () => {
   assert.ok(text.includes('Free.'));
   assert.ok(!text.includes('Free per person'), 'should not read "roughly Free per person"');
 });
+
+test('eligibleActivities applies "who" and excludeIds', () => {
+  const pool = [
+    act({ id: 1, suits: ['kids'] }),
+    act({ id: 2, suits: ['date'] }),
+    act({ id: 3 }),
+  ];
+  const ids = (o) => eligibleActivities(pool, { windowMinutes: 120, budget: 50, ...o }).map((a) => a.id);
+  assert.deepEqual(ids({ who: 'kids' }), [1]);
+  assert.deepEqual(ids({ who: 'any' }), [1, 2, 3]);
+  assert.deepEqual(ids({ excludeIds: [2] }), [1, 3]);
+});
+
+test('every plan and rain backup for a chosen group suits that group', () => {
+  for (const who of ['kids', 'easy', 'date', 'group']) {
+    let built = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const plan = planDay(ACTIVITIES, { windowMinutes: 240, budget: 100, daypart: 'day', who }, mulberry32(seed));
+      if (!plan) continue;
+      built++;
+      plan.stops.forEach((s) => assert.ok(s.suits.includes(who), `${who}: stop ${s.id}`));
+      Object.values(plan.backups).forEach((b) => b && assert.ok(b.suits.includes(who), `${who}: backup ${b.id}`));
+    }
+    assert.ok(built >= 38, `${who}: only ${built}/40 plans built`);
+  }
+});
+
+test('planDays: no activity repeats across days, counting rain backups', () => {
+  const opts = { windowMinutes: 240, budget: 50, daypart: 'day' };
+  for (let seed = 1; seed <= 30; seed++) {
+    const plans = planner.planDays(ACTIVITIES, opts, 3, mulberry32(seed));
+    assert.equal(plans.length, 3, `seed ${seed}`);
+    const ids = plans.flatMap((p) => [...p.stops.map((s) => s.id), ...Object.values(p.backups).filter(Boolean).map((b) => b.id)]);
+    assert.equal(new Set(ids).size, ids.length, `repeat with seed ${seed}`);
+    plans.forEach((p) => {
+      assert.ok(p.totalMinutes <= 240);
+      assert.ok(p.costMax <= 50);
+    });
+  }
+});
+
+test('planDays returns fewer days, not repeats, when the pool runs out', () => {
+  const tiny = [act({ id: 1 }), act({ id: 2 })];
+  const plans = planner.planDays(tiny, { windowMinutes: 60, budget: 10 }, 3, mulberry32(1));
+  const ids = plans.flatMap((p) => p.stops.map((s) => s.id));
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(plans.length >= 1 && plans.length < 3);
+});
+
+test('planDays with a single day matches planDay for the same seed', () => {
+  const opts = { windowMinutes: 240, budget: 50, daypart: 'day' };
+  const one = planner.planDays(ACTIVITIES, opts, 1, mulberry32(5))[0].stops.map((s) => s.id);
+  const direct = planDay(ACTIVITIES, { ...opts, excludeIds: [] }, mulberry32(5)).stops.map((s) => s.id);
+  assert.deepEqual(one, direct);
+});
+
+test('formatMultiDayText labels each day, uses dates when given, and carries the caveat once', () => {
+  const plans = planner.planDays(ACTIVITIES, { windowMinutes: 180, budget: 50, daypart: 'day' }, 2, mulberry32(3));
+  const text = planner.formatMultiDayText(plans, ['Sat 7 Nov', 'Sun 8 Nov']);
+  assert.ok(text.startsWith('Bored SG: 2-day plan'));
+  assert.ok(text.includes('Day 1 (Sat 7 Nov)') && text.includes('Day 2 (Sun 8 Nov)'));
+  assert.equal(text.split('opening hours are not checked').length - 1, 1);
+  assert.ok(planner.formatMultiDayText(plans).includes('Day 1:'));
+});

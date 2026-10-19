@@ -79,6 +79,17 @@
             <option value="North-East">North-East</option>
             <option value="South">South (Sentosa & islands)</option>
           </select>
+          <span class="locate-row"><button type="button" class="link-btn" data-locate="filter-area">📍 Use my location</button> <span class="muted-note" data-locate-status="filter-area" role="status"></span></span>
+        </label>
+        <label class="filter-wide">
+          Who's going
+          <select id="filter-who">
+            <option value="any">Anyone</option>
+            <option value="kids">Kids</option>
+            <option value="easy">Easy pace (seniors)</option>
+            <option value="date">Date</option>
+            <option value="group">Group of friends</option>
+          </select>
         </label>
       </section>
 
@@ -179,12 +190,33 @@
             <option value="North-East">North-East</option>
             <option value="South">South (Sentosa & islands)</option>
           </select>
+          <span class="locate-row"><button type="button" class="link-btn" data-locate="plan-area">📍 Use my location</button> <span class="muted-note" data-locate-status="plan-area" role="status"></span></span>
+        </label>
+        <label>
+          Who's going
+          <select id="plan-who">
+            <option value="any">Anyone</option>
+            <option value="kids">Kids</option>
+            <option value="easy">Easy pace (seniors)</option>
+            <option value="date">Date</option>
+            <option value="group">Group of friends</option>
+          </select>
+        </label>
+        <label>
+          Days
+          <select id="plan-days">
+            <option value="1">1 day</option>
+            <option value="2">2 days</option>
+            <option value="3">3 days</option>
+          </select>
         </label>
         <label class="filter-wide check">
           <input type="checkbox" id="plan-rainproof">
           Rain-proof plan (indoor and sheltered stops only)
         </label>
       </div>
+
+      <p id="longweekend-hint" class="plan-note" hidden></p>
 
       <div class="actions">
         <button id="btn-plan" class="primary">Build my plan</button>

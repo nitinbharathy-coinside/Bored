@@ -1,8 +1,8 @@
 (function () {
-  const { pickActivity, computeStreak } = window.BoredFilter;
-  const { isPublicHoliday, nextPublicHoliday, isLongWeekendHoliday } = window.BoredHolidays;
+  const { pickActivity, computeStreak, nearestArea } = window.BoredFilter;
+  const { isPublicHoliday, nextLongWeekend } = window.BoredHolidays;
   const { fetchSingaporeWeather } = window.BoredWeather;
-  const { planDay, formatPlanText, formatMinutes, formatCostRange, COST_LABELS } = window.BoredPlanner;
+  const { planDays, formatPlanText, formatMultiDayText, formatMinutes, formatCostRange, COST_LABELS } = window.BoredPlanner;
 
   const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme' };
   const RECENT_LIMIT = 8; // avoid repeating the last N picks in this session
@@ -13,6 +13,7 @@
   const filterEnergy = el('filter-energy');
   const filterLocation = el('filter-location');
   const filterArea = el('filter-area');
+  const filterWho = el('filter-who');
   const card = el('card');
   const btnSurprise = el('btn-surprise');
   const btnSkip = el('btn-skip');
@@ -57,6 +58,7 @@
       energy: filterEnergy.value,
       location: filterLocation.value,
       area: filterArea.value,
+      who: filterWho.value,
     };
   }
 
@@ -201,13 +203,14 @@
       holidayBanner.textContent = "🎉 It's a public holiday in Singapore today — good day to go big.";
       return;
     }
-    const next = nextPublicHoliday(today);
+    // Look past a Sunday holiday to its in-lieu Monday, which is what makes the long weekend.
+    const next = nextLongWeekend(today, 3);
     if (!next) {
       holidayBanner.hidden = true;
       return;
     }
     const daysAway = Math.round((new Date(next.date) - new Date(today.toDateString())) / (24 * 60 * 60 * 1000));
-    if (daysAway >= 1 && daysAway <= 3 && isLongWeekendHoliday(next.date)) {
+    if (daysAway >= 1) {
       holidayBanner.hidden = false;
       holidayBanner.textContent = `📅 Long weekend ahead: ${next.name} in ${daysAway} day${daysAway > 1 ? 's' : ''}.`;
     } else {
@@ -216,9 +219,11 @@
   }
 
   // ---- Day planner (Pro preview) ----
-  let lastPlan = null;
+  let lastPlans = [];
   let lastPlanText = '';
   let planBuiltOnce = false;
+  // Dates of the long weekend the user chose to plan, or null for plain "Day N" labels.
+  let weekendDates = null;
 
   function planOptionsFromForm(avoidIds) {
     const liveRain = weatherState.known && weatherState.isRaining && !weatherState.ignoreWeather;
@@ -228,6 +233,7 @@
       energy: el('plan-energy').value,
       area: el('plan-area').value,
       daypart: el('plan-when').value,
+      who: el('plan-who').value,
       rainProof: el('plan-rainproof').checked || liveRain,
       avoidIds: avoidIds || [],
     };
@@ -238,22 +244,12 @@
     return `${plan.stops.length} stop${plan.stops.length > 1 ? 's' : ''} · about ${formatMinutes(plan.totalMinutes)} · ${cost}`;
   }
 
-  function renderPlan(plan, options) {
-    const out = el('plan-result');
-    if (!plan) {
-      lastPlan = null;
-      lastPlanText = '';
-      const hint =
-        options.daypart === 'evening'
-          ? 'Evening out has fewer picks. Try removing the energy filter, turning off rain-proof, or choosing "Anywhere".'
-          : 'Try more time, a bigger budget, a different energy level, or "Anywhere".';
-      out.innerHTML = `<p class="empty-note">Nothing fits that combination. ${hint}</p>`;
-      return;
-    }
+  function dayLabel(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  }
 
-    lastPlan = plan;
-    lastPlanText = formatPlanText(plan);
-
+  function planBodyHtml(plan) {
     const stopsHtml = plan.stops
       .map((stop, i) => {
         const leg = i > 0 ? `<span class="leg">about ${plan.legs[i - 1]} min travel from the previous stop</span>` : '';
@@ -272,11 +268,43 @@
     if (plan.rainProof) note = 'Planned around rain: indoor and sheltered stops only.';
     else if (Object.keys(plan.backups).length > 0) note = 'The weather now may not match the day you go, so each outdoor stop comes with a rain backup.';
 
+    return `<p class="plan-summary">${escapeHtml(planSummary(plan))}</p>
+        ${note ? `<p class="plan-note">${escapeHtml(note)}</p>` : ''}
+        <ol class="plan-stops">${stopsHtml}</ol>`;
+  }
+
+  function renderPlans(plans, requestedDays, options) {
+    const out = el('plan-result');
+    if (plans.length === 0) {
+      lastPlans = [];
+      lastPlanText = '';
+      const hint =
+        options.daypart === 'evening'
+          ? 'Evening out has fewer picks. Try removing the energy filter, turning off rain-proof, or choosing "Anywhere".'
+          : 'Try more time, a bigger budget, a different energy level, "Anyone", or "Anywhere".';
+      out.innerHTML = `<p class="empty-note">Nothing fits that combination. ${hint}</p>`;
+      return;
+    }
+
+    const labels = weekendDates && requestedDays <= weekendDates.length ? weekendDates.slice(0, requestedDays).map(dayLabel) : [];
+    lastPlans = plans;
+    lastPlanText = plans.length === 1 ? formatPlanText(plans[0]) : formatMultiDayText(plans, labels);
+
+    const shortNote =
+      plans.length < requestedDays
+        ? `<p class="plan-note">Only ${plans.length} of ${requestedDays} days could be filled without repeating a place. Loosen a filter (area, who's going, energy) for more.</p>`
+        : '';
+    const bodyHtml =
+      plans.length === 1
+        ? planBodyHtml(plans[0])
+        : plans
+            .map((plan, i) => `<h3 class="day-heading">Day ${i + 1}${labels[i] ? ` · ${escapeHtml(labels[i])}` : ''}</h3>${planBodyHtml(plan)}`)
+            .join('');
+
     out.innerHTML = `
       <div class="plan">
-        <p class="plan-summary">${escapeHtml(planSummary(plan))}</p>
-        ${note ? `<p class="plan-note">${escapeHtml(note)}</p>` : ''}
-        <ol class="plan-stops">${stopsHtml}</ol>
+        ${shortNote}
+        ${bodyHtml}
         <div class="actions">
           <button data-action="shuffle">Shuffle</button>
           <button data-action="share">Share / copy</button>
@@ -290,8 +318,9 @@
 
   function buildAndRenderPlan(avoidIds) {
     const options = planOptionsFromForm(avoidIds);
+    const days = Number(el('plan-days').value);
     planBuiltOnce = true;
-    renderPlan(planDay(ACTIVITIES, options), options);
+    renderPlans(planDays(ACTIVITIES, options, days), days, options);
   }
 
   async function sharePlan() {
@@ -317,14 +346,15 @@
   }
 
   function savePlan() {
-    if (!lastPlan) return;
+    if (lastPlans.length === 0) return;
     const status = el('plan-status');
     const plans = loadList(STORAGE_KEYS.plans);
     if (plans.some((p) => p.text === lastPlanText)) {
       status.textContent = 'Already saved.';
       return;
     }
-    plans.unshift({ id: Date.now(), summary: planSummary(lastPlan), text: lastPlanText });
+    const summary = lastPlans.length === 1 ? planSummary(lastPlans[0]) : `${lastPlans.length}-day plan · ${lastPlans.reduce((n, p) => n + p.stops.length, 0)} stops`;
+    plans.unshift({ id: Date.now(), summary, text: lastPlanText });
     if (saveList(STORAGE_KEYS.plans, plans)) {
       status.textContent = 'Saved on this device.';
       renderSavedPlans();
@@ -364,9 +394,56 @@
     const button = event.target.closest('[data-action]');
     if (!button) return;
     const action = button.dataset.action;
-    if (action === 'shuffle') buildAndRenderPlan(lastPlan ? lastPlan.stops.map((s) => s.id) : []);
+    if (action === 'shuffle') buildAndRenderPlan(lastPlans.flatMap((p) => p.stops.map((s) => s.id)));
     else if (action === 'share') sharePlan();
     else if (action === 'save') savePlan();
+  });
+
+  // "Use my location": asks the browser for a position, maps it to the nearest
+  // region centre and selects that area. The position is used once and never
+  // stored or sent anywhere.
+  document.querySelectorAll('[data-locate]').forEach((btn) => {
+    const select = el(btn.dataset.locate);
+    const status = document.querySelector(`[data-locate-status="${btn.dataset.locate}"]`);
+    btn.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        status.textContent = 'Location is not available in this browser.';
+        return;
+      }
+      status.textContent = 'Locating…';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const area = nearestArea(pos.coords.latitude, pos.coords.longitude);
+          if (!area) {
+            status.textContent = "You don't seem to be in Singapore, so the area was left unchanged.";
+            return;
+          }
+          select.value = area;
+          select.dispatchEvent(new Event('change'));
+          status.textContent = `Nearest region: ${area}. This is a rough guess near borders; change it if wrong.`;
+        },
+        (err) => {
+          status.textContent = err && err.code === 1 ? 'Location permission was denied.' : 'Could not get your location.';
+        },
+        { timeout: 10000, maximumAge: 600000 }
+      );
+    });
+  });
+
+  // Offer a one-tap multi-day plan when a long weekend is coming up.
+  const upcomingWeekend = nextLongWeekend(new Date(), 21);
+  if (upcomingWeekend) {
+    const hint = el('longweekend-hint');
+    hint.hidden = false;
+    hint.innerHTML = `📅 Long weekend: ${escapeHtml(dayLabel(upcomingWeekend.dates[0]))} to ${escapeHtml(dayLabel(upcomingWeekend.dates[2]))} (${escapeHtml(upcomingWeekend.name)}). <button type="button" id="btn-weekend" class="link-btn">Plan all 3 days</button>`;
+    el('btn-weekend').addEventListener('click', () => {
+      weekendDates = upcomingWeekend.dates;
+      el('plan-days').value = '3';
+      buildAndRenderPlan([]);
+    });
+  }
+  el('plan-days').addEventListener('change', () => {
+    weekendDates = null;
   });
 
   document.querySelectorAll('.mode-btn').forEach((btn) => {
@@ -408,7 +485,7 @@
     draw();
   });
 
-  [filterTime, filterCost, filterEnergy, filterLocation, filterArea].forEach((f) =>
+  [filterTime, filterCost, filterEnergy, filterLocation, filterArea, filterWho].forEach((f) =>
     f.addEventListener('change', () => {
       if (current) draw();
     })

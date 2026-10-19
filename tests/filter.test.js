@@ -158,3 +158,45 @@ test('computeStreak breaks on a gap', () => {
   const timestamps = [now, now - 3 * day];
   assert.equal(computeStreak(timestamps, now), 1);
 });
+
+test('suits values in the data set are valid', () => {
+  const { WHO_VALUES } = require('../filter.js');
+  for (const a of ACTIVITIES) {
+    if (a.suits === undefined) continue;
+    assert.ok(Array.isArray(a.suits) && a.suits.length > 0, `activity ${a.id} has empty suits`);
+    for (const w of a.suits) assert.ok(WHO_VALUES.includes(w), `activity ${a.id} bad suits value ${w}`);
+  }
+  for (const w of WHO_VALUES) {
+    assert.ok(ACTIVITIES.filter((a) => a.suits && a.suits.includes(w)).length >= 10, `too few entries for ${w}`);
+  }
+});
+
+test('matchesFilters: a specific "who" only matches entries that list it, untagged entries never match', () => {
+  const base = { minMinutes: 5, cost: 'free', energy: 'low', location: 'any', area: 'Islandwide' };
+  assert.equal(matchesFilters({ ...base, suits: ['kids', 'date'] }, { who: 'kids' }), true);
+  assert.equal(matchesFilters({ ...base, suits: ['date'] }, { who: 'kids' }), false);
+  assert.equal(matchesFilters(base, { who: 'kids' }), false);
+  assert.equal(matchesFilters(base, { who: 'any' }), true);
+});
+
+test('nearestArea maps well-known places to the expected region', () => {
+  const { nearestArea } = require('../filter.js');
+  const cases = {
+    Orchard: [1.304, 103.832, 'Central'], ToaPayoh: [1.334, 103.85, 'Central'], Bishan: [1.351, 103.848, 'Central'],
+    JurongEast: [1.333, 103.742, 'West'], Clementi: [1.315, 103.765, 'West'], Tuas: [1.32, 103.65, 'West'],
+    PasirRis: [1.373, 103.949, 'East'], Bedok: [1.324, 103.93, 'East'], Changi: [1.36, 103.99, 'East'],
+    Woodlands: [1.437, 103.786, 'North'], Yishun: [1.429, 103.835, 'North'],
+    Punggol: [1.405, 103.902, 'North-East'], Hougang: [1.371, 103.893, 'North-East'],
+    Sentosa: [1.249, 103.83, 'South'], Harbourfront: [1.265, 103.82, 'South'],
+  };
+  for (const [name, [lat, lng, expected]] of Object.entries(cases)) {
+    assert.equal(nearestArea(lat, lng), expected, name);
+  }
+});
+
+test('nearestArea returns null outside Singapore or for bad input', () => {
+  const { nearestArea } = require('../filter.js');
+  assert.equal(nearestArea(3.139, 101.687), null); // Kuala Lumpur
+  assert.equal(nearestArea(NaN, 103.8), null);
+  assert.equal(nearestArea(undefined, undefined), null);
+});

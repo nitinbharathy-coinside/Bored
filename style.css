@@ -89,7 +89,7 @@ header h1 {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -107,6 +107,8 @@ header h1 {
 }
 
 .filters select {
+  width: 100%;
+  min-width: 0;
   font-size: 1rem;
   padding: 8px;
   border-radius: 8px;
@@ -438,3 +440,6 @@ footer button {
   font-size: 0.8rem;
   white-space: pre-wrap;
 }
+
+.locate-row { margin-top: 2px; font-size: 0.8rem; }
+.day-heading { margin: 18px 0 6px; font-size: 1rem; }

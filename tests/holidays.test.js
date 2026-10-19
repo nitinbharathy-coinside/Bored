@@ -43,3 +43,35 @@ test('isLongWeekendHoliday flags Monday and Friday holidays', () => {
   // 2026-02-18 is a Wednesday (Chinese New Year day 2)
   assert.equal(isLongWeekendHoliday('2026-02-18'), false);
 });
+
+test('longWeekendDates: Monday holiday gives Sat-Sun-Mon, Friday gives Fri-Sat-Sun, other days null', () => {
+  const { longWeekendDates } = require('../holidays.js');
+  assert.deepEqual(longWeekendDates('2026-11-09'), ['2026-11-07', '2026-11-08', '2026-11-09']); // Monday
+  assert.deepEqual(longWeekendDates('2026-12-25'), ['2026-12-25', '2026-12-26', '2026-12-27']); // Friday
+  assert.equal(longWeekendDates('2026-11-08'), null); // Sunday
+  assert.equal(longWeekendDates('2026-02-17'), null); // Tuesday
+});
+
+test('longWeekendDates crosses month and year boundaries', () => {
+  const { longWeekendDates } = require('../holidays.js');
+  assert.deepEqual(longWeekendDates('2026-06-01'), ['2026-05-30', '2026-05-31', '2026-06-01']);
+});
+
+test('nextLongWeekend skips a Sunday holiday and finds its in-lieu Monday', () => {
+  const { nextLongWeekend } = require('../holidays.js');
+  const lw = nextLongWeekend('2026-11-01', 21);
+  assert.equal(lw.date, '2026-11-09');
+  assert.deepEqual(lw.dates, ['2026-11-07', '2026-11-08', '2026-11-09']);
+});
+
+test('nextLongWeekend respects the lookahead window and returns null past the table', () => {
+  const { nextLongWeekend } = require('../holidays.js');
+  assert.equal(nextLongWeekend('2026-10-19', 14), null); // 21 days away
+  assert.equal(nextLongWeekend('2026-10-19', 21).date, '2026-11-09');
+  assert.equal(nextLongWeekend('2026-12-30', 21), null);
+});
+
+test('nextLongWeekend includes a holiday that is today', () => {
+  const { nextLongWeekend } = require('../holidays.js');
+  assert.equal(nextLongWeekend('2026-11-09', 1).date, '2026-11-09');
+});
