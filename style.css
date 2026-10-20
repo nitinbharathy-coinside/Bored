@@ -462,7 +462,9 @@ footer button {
 
 .deck {
   position: relative;
-  height: 230px;
+  /* Tall like a card stack, but capped so the action buttons stay on screen
+     on small phones (the page above the deck takes roughly 300px). */
+  height: clamp(200px, calc(100vh - 450px), 440px);
   margin-bottom: 8px;
 }
 
@@ -477,7 +479,7 @@ footer button {
   border: 1px solid var(--border);
   border-radius: 20px;
   text-align: center;
-  font-size: 1.15rem;
+  font-size: 1.3rem;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
@@ -554,7 +556,8 @@ footer button {
   text-align: center;
 }
 
-.deck-actions { justify-content: center; margin-bottom: 8px; }
+.deck-actions { justify-content: center; flex-wrap: nowrap; gap: 6px; margin-bottom: 8px; }
+.deck-actions button { padding: 10px 12px; font-size: 0.9rem; white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   .swipe-card { transition: none; }
