@@ -85,6 +85,23 @@ function pickActivity(activities, filters, recentIds, rng = Math.random, weather
   return candidates[Math.floor(rng() * candidates.length)];
 }
 
+const ENERGY_CHIPS = { low: 'Low energy', med: 'Some energy', high: 'High energy' };
+const WHO_CHIPS = { kids: 'Kids', easy: 'Easy pace', date: 'Date', group: 'Group' };
+
+// Short labels for a card, built only from fields the entry already has:
+// energy, indoor/outdoor, whether rain would spoil it, evening-only, and who
+// it suits. `weatherSensitive` is deliberately worded as "Weather-dependent"
+// because the dataset marks an entry that way whenever rain *might* spoil it.
+function activityChips(activity) {
+  const chips = [ENERGY_CHIPS[activity.energy]];
+  if (activity.location === 'indoor') chips.push('Indoor');
+  else if (activity.location === 'outdoor') chips.push('Outdoor');
+  if (activity.weatherSensitive) chips.push('Weather-dependent');
+  if (activity.daypart === 'evening') chips.push('Evening');
+  (activity.suits || []).forEach((w) => WHO_CHIPS[w] && chips.push(WHO_CHIPS[w]));
+  return chips.filter(Boolean);
+}
+
 // Fisher-Yates shuffle into a new array; `rng` is injectable for tests.
 function shuffle(items, rng = Math.random) {
   const out = items.slice();
@@ -128,7 +145,7 @@ function computeStreak(timestamps, now = Date.now()) {
   return streak;
 }
 
-const filterApi = { COST_ORDER, WHO_VALUES, nearestArea, shuffle, buildDeck, matchesFilters, passesWeather, filterActivities, pickActivity, computeStreak };
+const filterApi = { COST_ORDER, WHO_VALUES, nearestArea, activityChips, shuffle, buildDeck, matchesFilters, passesWeather, filterActivities, pickActivity, computeStreak };
 
 if (typeof module !== 'undefined') module.exports = filterApi;
 if (typeof window !== 'undefined') window.BoredFilter = filterApi;

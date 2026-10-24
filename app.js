@@ -1,5 +1,5 @@
 (function () {
-  const { buildDeck, passesWeather, computeStreak, nearestArea } = window.BoredFilter;
+  const { buildDeck, passesWeather, computeStreak, nearestArea, activityChips } = window.BoredFilter;
   const { createDeck } = window.BoredDeck;
   const { isPublicHoliday, nextLongWeekend } = window.BoredHolidays;
   const { fetchSingaporeWeather } = window.BoredWeather;
@@ -88,7 +88,7 @@
   function cardHtml(activity, depth) {
     const style = depth === 0 ? '' : ` style="transform: translateY(${depth * 10}px) scale(${1 - depth * 0.04}); z-index: ${10 - depth};"`;
     const labels = depth === 0 ? '<span class="stamp stamp-save" aria-hidden="true">SAVE</span><span class="stamp stamp-skip" aria-hidden="true">SKIP</span>' : '';
-    return `<div class="swipe-card${depth === 0 ? ' top' : ''}"${style}>${labels}<div><span class="category">${escapeHtml(activity.tags[0])}</span><p>${escapeHtml(activity.text)}</p><span class="meta">${activity.area} · ${activity.minMinutes} min · ${COST_LABELS[activity.cost]}</span></div></div>`;
+    return `<div class="swipe-card${depth === 0 ? ' top' : ''}"${style}>${labels}<div><span class="category">${escapeHtml(activity.tags[0])}</span><p>${escapeHtml(activity.text)}</p><span class="meta">${activity.area} · ${activity.minMinutes} min · ${COST_LABELS[activity.cost]}</span><span class="chips">${activityChips(activity).map((c) => `<span class="chip">${escapeHtml(c)}</span>`).join('')}</span></div></div>`;
   }
 
   function emptyDeckHtml() {

@@ -200,3 +200,23 @@ test('nearestArea returns null outside Singapore or for bad input', () => {
   assert.equal(nearestArea(NaN, 103.8), null);
   assert.equal(nearestArea(undefined, undefined), null);
 });
+
+test('activityChips uses only the entry\'s own fields', () => {
+  const { activityChips } = require('../filter.js');
+  const base = { energy: 'low', location: 'indoor', weatherSensitive: false };
+  assert.deepEqual(activityChips(base), ['Low energy', 'Indoor']);
+  assert.deepEqual(activityChips({ ...base, energy: 'high', location: 'outdoor', weatherSensitive: true, daypart: 'evening', suits: ['kids', 'date'] }),
+    ['High energy', 'Outdoor', 'Weather-dependent', 'Evening', 'Kids', 'Date']);
+  assert.deepEqual(activityChips({ ...base, location: 'any', energy: 'med' }), ['Some energy'], 'location "any" adds no chip');
+  assert.deepEqual(activityChips({ ...base, suits: ['bogus'] }), ['Low energy', 'Indoor'], 'unknown suits are ignored');
+});
+
+test('every dataset entry gets at least an energy chip and a weather-dependent chip matches the flag', () => {
+  const { activityChips } = require('../filter.js');
+  for (const a of ACTIVITIES) {
+    const chips = activityChips(a);
+    assert.ok(chips.length >= 1, `activity ${a.id}`);
+    assert.equal(chips.includes('Weather-dependent'), a.weatherSensitive, `activity ${a.id}`);
+    assert.equal(chips.includes('Evening'), a.daypart === 'evening', `activity ${a.id}`);
+  }
+});
