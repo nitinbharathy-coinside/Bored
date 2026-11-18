@@ -1,4 +1,6 @@
-# Bored SG
+# Jalan Jalan SG
+
+(Formerly "Bored SG". The repository name, the `bored.*` localStorage keys and the `Bored*` code identifiers keep the old name on purpose, so existing saved items, history and plans aren't lost.)
 
 A tiny, dependency-free web app with two modes:
 

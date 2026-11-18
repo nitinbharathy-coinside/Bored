@@ -506,7 +506,7 @@
     const text = `${lastPlanText}\n\nOpen this plan in the app: ${planLink()}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'My Bored SG plan', text });
+        await navigator.share({ title: 'My Jalan Jalan SG plan', text });
         return;
       } catch (err) {
         if (err && err.name === 'AbortError') return;

@@ -276,7 +276,7 @@ test('formatPlanText includes every stop, rain backups, totals and the honesty f
   const plan = planDay(ACTIVITIES, { windowMinutes: 240, budget: 50 }, mulberry32(11));
   const text = formatPlanText(plan);
   plan.stops.forEach((s) => assert.ok(text.includes(s.text), `missing stop: ${s.text}`));
-  assert.ok(text.includes('Bored SG plan'));
+  assert.ok(text.includes('Jalan Jalan SG plan'));
   assert.ok(text.includes('per person'));
   assert.ok(text.includes('opening hours are not checked'));
   Object.values(plan.backups).forEach((b) => {
@@ -349,7 +349,7 @@ test('planDays with a single day matches planDay for the same seed', () => {
 test('formatMultiDayText labels each day, uses dates when given, and carries the caveat once', () => {
   const plans = planner.planDays(ACTIVITIES, { windowMinutes: 180, budget: 50, daypart: 'day' }, 2, mulberry32(3));
   const text = planner.formatMultiDayText(plans, ['Sat 7 Nov', 'Sun 8 Nov']);
-  assert.ok(text.startsWith('Bored SG: 2-day plan'));
+  assert.ok(text.startsWith('Jalan Jalan SG: 2-day plan'));
   assert.ok(text.includes('Day 1 (Sat 7 Nov)') && text.includes('Day 2 (Sun 8 Nov)'));
   assert.equal(text.split('opening hours are not checked').length - 1, 1);
   assert.ok(planner.formatMultiDayText(plans).includes('Day 1:'));

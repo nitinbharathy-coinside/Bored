@@ -346,7 +346,7 @@
   function formatPlanText(plan, opts = {}) {
     const budgetText = plan.budget === 0 ? 'free activities only' : `up to $${plan.budget} per person`;
     const summary = `${formatMinutes(plan.windowMinutes)} available, ${budgetText}`;
-    const lines = [opts.title ? `${opts.title}: ${summary}` : `Bored SG plan: ${summary}`];
+    const lines = [opts.title ? `${opts.title}: ${summary}` : `Jalan Jalan SG plan: ${summary}`];
     plan.stops.forEach((stop, i) => {
       if (i > 0) lines.push(`   ~${plan.legs[i - 1]} min travel`);
       lines.push(`${i + 1}. ${describe(stop)}`);
@@ -373,7 +373,7 @@
       const name = labels[i] ? `Day ${i + 1} (${labels[i]})` : `Day ${i + 1}`;
       return formatPlanText(plan, { title: name, footer: false });
     });
-    return [`Bored SG: ${plans.length}-day plan`, ...blocks, PLAN_CAVEAT].join('\n\n');
+    return [`Jalan Jalan SG: ${plans.length}-day plan`, ...blocks, PLAN_CAVEAT].join('\n\n');
   }
 
   const plannerApi = {
