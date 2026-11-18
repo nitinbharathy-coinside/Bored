@@ -1,34 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 240" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
-  <g transform="translate(0 30)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
   <!-- far city -->
   <g fill="#dbe6f6">
-    <rect x="0" y="170" width="26" height="70"/><rect x="26" y="150" width="20" height="90"/><rect x="46" y="176" width="30" height="64"/>
-    <rect x="76" y="160" width="18" height="80"/><rect x="94" y="182" width="36" height="58"/><rect x="130" y="166" width="22" height="74"/>
-    <rect x="470" y="158" width="22" height="82"/><rect x="492" y="178" width="30" height="62"/><rect x="522" y="150" width="18" height="90"/>
-    <rect x="540" y="172" width="34" height="68"/><rect x="574" y="156" width="22" height="84"/><rect x="596" y="176" width="44" height="64"/>
+    <rect x="0" y="92" width="26" height="58"/><rect x="26" y="74" width="20" height="76"/><rect x="46" y="100" width="24" height="50"/>
+    <rect x="176" y="96" width="20" height="54"/><rect x="196" y="82" width="16" height="68"/>
+    <rect x="404" y="88" width="18" height="62"/><rect x="520" y="94" width="22" height="56"/>
+    <rect x="542" y="78" width="16" height="72"/><rect x="606" y="86" width="20" height="64"/><rect x="626" y="100" width="14" height="50"/>
   </g>
-  <!-- Supertree-style trees -->
+
+  <!-- Supertree Grove -->
   <g fill="#c9d9ef">
-    <path d="M150 240V150h4v90z"/><ellipse cx="152" cy="146" rx="22" ry="9"/>
-    <path d="M196 240V128h5v112z"/><ellipse cx="198.500" cy="124" rx="28" ry="11"/>
-    <path d="M240 240V160h4v80z"/><ellipse cx="242" cy="156" rx="20" ry="8"/>
+    <path d="M67 150 L69 70 L73 70 L75 150z"/>
+    <path d="M44 66 Q71 50 98 66 L82 82 Q71 87 60 82z"/><ellipse cx="71" cy="60" rx="16" ry="5"/>
+    <path d="M108 150 L110 52 L114 52 L116 150z"/>
+    <path d="M82 46 Q112 28 142 46 L124 64 Q112 69 100 64z"/><ellipse cx="112" cy="39" rx="18" ry="5"/>
+    <path d="M146 150 L148 86 L151 86 L153 150z"/>
+    <path d="M128 84 Q150 72 172 84 L160 96 Q150 100 140 96z"/><ellipse cx="150" cy="79" rx="13" ry="4"/>
   </g>
-  <!-- Marina Bay Sands style towers and deck -->
-  <g fill="#c2d4ec">
-    <path d="M298 240 L306 92 L326 92 L326 240z"/>
-    <path d="M330 240 L336 80 L358 80 L358 240z"/>
-    <path d="M362 240 L368 92 L388 92 L382 240z"/>
-    <path d="M286 90 L400 90 Q412 90 420 82 L424 78 Q412 84 398 84 L288 84 Q280 84 276 88z"/>
+
+  <!-- Merlion, facing the bay (right) -->
+  <g transform="translate(-14 0)">
+    <path d="M212 150 L218 134 L264 134 L270 150z" fill="#c2d4ec"/>
+    <path d="M226 136 Q221 120 227 108 Q232 98 229 90 L252 90 Q248 100 253 110 Q258 122 254 136z" fill="#b3c7e4"/>
+    <path d="M228 132 Q212 134 207 120 Q204 108 211 100 Q211 110 220 114 L218 106 Q224 112 228 118z" fill="#b3c7e4"/>
+    <g fill="#a6bde0">
+      <circle cx="240" cy="76" r="17"/>
+      <circle cx="240" cy="59" r="6"/><circle cx="252" cy="64" r="6"/><circle cx="228" cy="64" r="6"/>
+      <circle cx="223" cy="76" r="6"/><circle cx="228" cy="89" r="6"/><circle cx="250" cy="90" r="6"/>
+    </g>
+    <circle cx="243" cy="78" r="11" fill="#bccfe9"/>
+    <path d="M246 74 Q260 72 266 80 L262 82 Q266 86 260 89 Q250 90 246 86z" fill="#bccfe9"/>
+    <path d="M266 84 Q294 78 296 122" fill="none" stroke="#c9d9ef" stroke-width="3" stroke-linecap="round"/>
+    <path d="M206 147 Q226 143 246 147 T290 147" fill="none" stroke="#c2d4ec" stroke-width="3" stroke-linecap="round"/>
   </g>
-  <!-- lotus-style dome and waterfront -->
-  <g fill="#cfdcf0">
-    <path d="M432 240 Q432 196 450 188 Q462 196 464 240z"/><path d="M450 240 Q452 190 478 184 Q484 214 480 240z"/>
-    <path d="M410 240V214h14v26z"/>
+
+  <!-- Marina Bay Sands: three leaning towers, one SkyPark with a cantilever -->
+  <g fill="#bccfe9">
+    <path d="M304 150 L312 46 L326 46 L322 150z"/>
+    <path d="M337 150 L340 46 L358 46 L361 150z"/>
+    <path d="M376 150 L372 46 L386 46 L394 150z"/>
+    <path d="M298 38 L404 38 Q418 36 430 27 L431 33 Q416 46 400 47 L302 47 Q296 46 296 42z"/>
   </g>
-  <!-- palms -->
-  <g fill="#b8cbe6">
-    <path d="M44 240 Q42 190 52 160 L55 160 Q50 190 52 240z"/>
-    <path d="M53 160 Q36 150 22 162 Q40 154 53 164z"/><path d="M53 160 Q70 148 86 160 Q68 154 53 164z"/><path d="M53 160 Q52 140 62 130 Q56 148 55 162z"/>
+
+  <!-- Esplanade durian domes -->
+  <g>
+    <path d="M436 150 A34 32 0 0 1 504 150z" fill="#cfdcf0"/>
+    <path d="M498 150 A26 24 0 0 1 550 150z" fill="#c9d9ef"/>
+    <g stroke="#dbe6f6" stroke-width="1.3" fill="none">
+      <path d="M470 118 L470 150M470 118 L452 150M470 118 L488 150M470 118 L441 150M470 118 L499 150"/>
+      <path d="M524 126 L524 150M524 126 L510 150M524 126 L538 150"/>
+    </g>
   </g>
-</g>
+
+  <!-- Singapore Flyer -->
+  <g fill="none" stroke="#cfdcf0" stroke-linecap="round">
+    <circle cx="582" cy="88" r="34" stroke-width="2.5"/>
+    <path d="M582 54V122M548 88H616M558 64L606 112M606 64L558 112" stroke-width="1"/>
+    <path d="M582 88L570 150M582 88L594 150" stroke-width="2.5"/>
+  </g>
+  <rect x="556" y="142" width="52" height="8" fill="#cfdcf0"/>
 </svg>
