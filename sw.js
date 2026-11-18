@@ -1,6 +1,6 @@
 // Minimal offline cache for the app shell. Bump CACHE_NAME when shipping
 // changes to any cached file so clients pick up the new version.
-const CACHE_NAME = 'bored-v12';
+const CACHE_NAME = 'bored-v13';
 const APP_SHELL = [
   './',
   'index.html',
@@ -14,6 +14,7 @@ const APP_SHELL = [
   'weather.js',
   'manifest.json',
   'icon.svg',
+  'skyline.svg',
 ];
 
 self.addEventListener('install', (event) => {

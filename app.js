@@ -22,7 +22,6 @@
   const btnSkip = el('btn-skip');
   const btnSave = el('btn-save');
   const btnDone = el('btn-done');
-  const themeToggle = el('theme-toggle');
   const weatherBanner = el('weather-banner');
   const holidayBanner = el('holiday-banner');
   const btnShowAnyway = el('btn-show-anyway');
@@ -745,28 +744,10 @@
     });
   });
 
-  function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    try {
-      localStorage.setItem(STORAGE_KEYS.theme, theme);
-    } catch (e) {
-      // storage blocked: the theme still applies for this visit
-    }
-  }
-
-  themeToggle.addEventListener('click', () => {
-    const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    applyTheme(cur === 'dark' ? 'light' : 'dark');
-  });
-
-  let savedTheme = null;
-  try {
-    savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
-  } catch (e) {
-    // storage blocked
-  }
-  if (savedTheme) applyTheme(savedTheme);
-  else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
+  // Light only for now. The dark palette is still defined in style.css and
+  // data-theme="dark" turns it on, but nothing sets it (the toggle is gone and
+  // the OS preference is ignored), so a stored dark choice has no effect.
+  document.documentElement.setAttribute('data-theme', 'light');
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

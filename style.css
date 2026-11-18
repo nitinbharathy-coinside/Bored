@@ -38,6 +38,7 @@
 [hidden] { display: none !important; }
 
 body {
+  position: relative;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
@@ -51,7 +52,7 @@ body {
   max-width: 640px;
   margin: 0 auto;
   /* The status bar is translucent when installed on iOS, so keep clear of it. */
-  padding: calc(18px + env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom));
+  padding: calc(98px + env(safe-area-inset-top)) 16px calc(56px + env(safe-area-inset-bottom));
 }
 
 :focus-visible {
@@ -254,7 +255,7 @@ button.primary {
 .deck {
   position: relative;
   /* Tall like a card stack, capped so the action buttons stay on screen. */
-  height: clamp(260px, calc(100vh - 430px), 460px);
+  height: clamp(210px, calc(100vh - 500px), 460px);
   margin-bottom: 10px;
 }
 
@@ -608,3 +609,21 @@ footer button { flex: none; border-radius: 12px; padding: 6px 10px; }
 .who-prompt h2 { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; }
 .who-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
 .who-options button { min-height: 48px; font-weight: 600; border-radius: var(--r-sm); }
+
+/* Skyline artwork across the top; the header sits just below it. */
+body::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 88px;
+  background:
+    url("skyline.svg") center bottom / cover no-repeat,
+    linear-gradient(180deg, oklch(91% 0.04 247) 0%, oklch(96% 0.015 250) 100%);
+  pointer-events: none;
+}
+@media (min-width: 641px) {
+  body::before { background-size: auto 100%, auto; }
+}
