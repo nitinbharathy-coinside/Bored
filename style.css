@@ -630,3 +630,15 @@ footer button { flex: none; border-radius: 12px; padding: 6px 10px; }
   .swipe-card, button { transition: none; }
   button:active:not(:disabled) { transform: none; }
 }
+
+/* First-visit "Who's going" question */
+.who-prompt {
+  margin-bottom: 14px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 18px;
+}
+.who-prompt h2 { margin: 0 0 10px; font-size: 1.05rem; font-weight: 800; }
+.who-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.who-options button { min-height: 48px; font-weight: 700; border-radius: 14px; }

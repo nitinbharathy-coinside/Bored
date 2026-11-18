@@ -31,6 +31,16 @@
     </nav>
 
     <div id="mode-quick" role="tabpanel">
+      <section id="who-prompt" class="who-prompt" aria-labelledby="who-title" hidden>
+        <h2 id="who-title">Who's going today?</h2>
+        <div class="who-options">
+          <button type="button" data-who="kids">Kids</button>
+          <button type="button" data-who="easy">Easy pace</button>
+          <button type="button" data-who="date">Date</button>
+          <button type="button" data-who="group">Friends</button>
+        </div>
+        <button type="button" id="who-skip" class="link-btn">Skip, show everything</button>
+      </section>
       <button type="button" id="filters-toggle" class="filters-strip" aria-expanded="false" aria-controls="quick-filters">
         <span id="filters-summary">No filters</span> <span aria-hidden="true">Filters ▾</span>
       </button>

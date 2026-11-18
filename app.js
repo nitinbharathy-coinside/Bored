@@ -1,11 +1,11 @@
 (function () {
-  const { buildDeck, passesWeather, computeStreak, nearestArea, activityChips } = window.BoredFilter;
+  const { WHO_VALUES, buildDeck, passesWeather, computeStreak, nearestArea, activityChips } = window.BoredFilter;
   const { createDeck } = window.BoredDeck;
   const { isPublicHoliday, nextLongWeekend } = window.BoredHolidays;
   const { fetchSingaporeWeather } = window.BoredWeather;
   const { planDays, formatPlanText, formatMultiDayText, formatMinutes, formatCostRange, encodePlans, decodePlans, COST_LABELS } = window.BoredPlanner;
 
-  const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme' };
+  const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme', who: 'bored.who' };
   const SWIPE_MIN_PX = 80; // drag distance that counts as a swipe
   const VISIBLE_CARDS = 3;
 
@@ -688,6 +688,54 @@
     })
   );
 
+  // "Who's going" is remembered and shared by Quick pick and Plan a day, since
+  // the company doesn't change between the two. Storage can be blocked (private
+  // mode), so every access is guarded and the app works without it.
+  const whoPrompt = el('who-prompt');
+  const planWho = el('plan-who');
+
+  function readWho() {
+    try {
+      const v = localStorage.getItem(STORAGE_KEYS.who);
+      return v === 'any' || WHO_VALUES.includes(v) ? v : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setWho(value) {
+    filterWho.value = value;
+    planWho.value = value;
+    try {
+      localStorage.setItem(STORAGE_KEYS.who, value);
+    } catch (e) {
+      // not remembered this time; the choice still applies for this visit
+    }
+    updateFiltersSummary();
+  }
+
+  whoPrompt.querySelectorAll('[data-who]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      setWho(btn.dataset.who);
+      whoPrompt.hidden = true;
+      startDeck();
+    })
+  );
+  el('who-skip').addEventListener('click', () => {
+    setWho('any');
+    whoPrompt.hidden = true;
+    startDeck();
+  });
+  filterWho.addEventListener('change', () => setWho(filterWho.value));
+  planWho.addEventListener('change', () => {
+    setWho(planWho.value);
+    startDeck();
+  });
+
+  const storedWho = readWho();
+  if (storedWho === null) whoPrompt.hidden = false;
+  else setWho(storedWho);
+
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
@@ -699,7 +747,11 @@
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(STORAGE_KEYS.theme, theme);
+    try {
+      localStorage.setItem(STORAGE_KEYS.theme, theme);
+    } catch (e) {
+      // storage blocked: the theme still applies for this visit
+    }
   }
 
   themeToggle.addEventListener('click', () => {
@@ -707,7 +759,12 @@
     applyTheme(cur === 'dark' ? 'light' : 'dark');
   });
 
-  const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+  let savedTheme = null;
+  try {
+    savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+  } catch (e) {
+    // storage blocked
+  }
   if (savedTheme) applyTheme(savedTheme);
   else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyTheme('dark');
 
