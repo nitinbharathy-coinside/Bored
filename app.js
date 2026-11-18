@@ -303,7 +303,7 @@
     }
     if (weatherState.isRaining && !weatherState.ignoreWeather) {
       weatherBanner.hidden = false;
-      weatherBanner.innerHTML = '🌧️ Raining across parts of Singapore right now — showing indoor/sheltered picks. <button id="btn-show-anyway-inner" class="link-btn">Show outdoor anyway</button>';
+      weatherBanner.innerHTML = 'Raining across parts of Singapore right now. Showing indoor and sheltered picks. <button id="btn-show-anyway-inner" class="link-btn">Show outdoor anyway</button>';
       el('btn-show-anyway-inner').addEventListener('click', () => {
         weatherState.ignoreWeather = true;
         renderWeatherBanner();
@@ -311,7 +311,7 @@
       });
     } else if (weatherState.isRaining && weatherState.ignoreWeather) {
       weatherBanner.hidden = false;
-      weatherBanner.innerHTML = '🌧️ Still raining in parts of Singapore — outdoor picks are back on. <button id="btn-hide-outdoor-inner" class="link-btn">Hide outdoor again</button>';
+      weatherBanner.innerHTML = 'Still raining in parts of Singapore. Outdoor picks are back on. <button id="btn-hide-outdoor-inner" class="link-btn">Hide outdoor again</button>';
       el('btn-hide-outdoor-inner').addEventListener('click', () => {
         weatherState.ignoreWeather = false;
         renderWeatherBanner();
@@ -329,15 +329,15 @@
     const statusEl = el('weather-status');
     if (!weatherState.known) {
       statusEl.textContent = weatherState.checked
-        ? '⚠️ Weather: unavailable right now (NEA API unreachable or blocked) — outdoor picks are not being filtered for rain.'
+        ? 'Weather unavailable right now (NEA API unreachable or blocked). Outdoor picks are not being filtered for rain.'
         : 'Checking Singapore weather…';
       statusEl.className = weatherState.checked ? 'weather-status weather-status-bad' : 'weather-status';
       return;
     }
     const pct = Math.round(weatherState.rainingFraction * 100);
     statusEl.textContent = weatherState.isRaining
-      ? `🌧️ Weather: rain reported in ~${pct}% of NEA's forecast areas — outdoor picks are being filtered.`
-      : `☀️ Weather: dry across Singapore right now, via NEA — no filtering applied.`;
+      ? `Rain reported in about ${pct}% of NEA forecast areas. Outdoor picks are being filtered.`
+      : `Dry across Singapore right now (NEA). No rain filtering applied.`;
     statusEl.className = 'weather-status weather-status-good';
   }
 
@@ -345,7 +345,7 @@
     const today = new Date();
     if (isPublicHoliday(today)) {
       holidayBanner.hidden = false;
-      holidayBanner.textContent = "🎉 It's a public holiday in Singapore today — good day to go big.";
+      holidayBanner.textContent = "It's a public holiday in Singapore today.";
       return;
     }
     // Look past a Sunday holiday to its in-lieu Monday, which is what makes the long weekend.
@@ -357,7 +357,7 @@
     const daysAway = Math.round((new Date(next.date) - new Date(today.toDateString())) / (24 * 60 * 60 * 1000));
     if (daysAway >= 1) {
       holidayBanner.hidden = false;
-      holidayBanner.textContent = `📅 Long weekend ahead: ${next.name} in ${daysAway} day${daysAway > 1 ? 's' : ''}.`;
+      holidayBanner.textContent = `Long weekend ahead: ${next.name} in ${daysAway} day${daysAway > 1 ? 's' : ''}.`;
     } else {
       holidayBanner.hidden = true;
     }
@@ -636,7 +636,7 @@
   if (upcomingWeekend) {
     const hint = el('longweekend-hint');
     hint.hidden = false;
-    hint.innerHTML = `📅 Long weekend: ${escapeHtml(dayLabel(upcomingWeekend.dates[0]))} to ${escapeHtml(dayLabel(upcomingWeekend.dates[2]))} (${escapeHtml(upcomingWeekend.name)}). <button type="button" id="btn-weekend" class="link-btn">Plan all 3 days</button>`;
+    hint.innerHTML = `Long weekend: ${escapeHtml(dayLabel(upcomingWeekend.dates[0]))} to ${escapeHtml(dayLabel(upcomingWeekend.dates[2]))} (${escapeHtml(upcomingWeekend.name)}). <button type="button" id="btn-weekend" class="link-btn">Plan all 3 days</button>`;
     el('btn-weekend').addEventListener('click', () => {
       weekendDates = upcomingWeekend.dates;
       el('plan-days').value = '3';

@@ -11,7 +11,10 @@
   --accent-text: oklch(42% 0.14 258);
   --save: oklch(48% 0.095 160);
   --skip: oklch(50% 0.16 28);
-  --shadow: 0 1px 2px oklch(25% 0.04 255 / 0.06), 0 8px 24px oklch(25% 0.04 255 / 0.09);
+  --r-lg: 16px;
+  --r-md: 12px;
+  --r-sm: 10px;
+  --shadow: 0 1px 2px oklch(25% 0.04 255 / 0.08), 0 4px 12px oklch(25% 0.04 255 / 0.05);
 }
 
 :root[data-theme="dark"] {
@@ -27,7 +30,7 @@
   --accent-text: oklch(80% 0.09 255);
   --save: oklch(75% 0.14 160);
   --skip: oklch(72% 0.15 28);
-  --shadow: 0 1px 2px oklch(5% 0.02 255 / 0.45), 0 8px 24px oklch(5% 0.02 255 / 0.4);
+  --shadow: 0 1px 2px oklch(5% 0.02 255 / 0.5), 0 4px 12px oklch(5% 0.02 255 / 0.3);
 }
 
 * { box-sizing: border-box; }
@@ -57,9 +60,9 @@ body {
 }
 
 header h1 {
-  font-size: 1.9rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   margin: 0 0 4px;
 }
@@ -71,8 +74,7 @@ header h1 {
 }
 
 .banner {
-  border-radius: 14px;
-  border-left: 4px solid;
+  border-radius: var(--r-sm);
   padding: 10px 14px;
   font-size: 0.85rem;
   margin-bottom: 12px;
@@ -80,44 +82,24 @@ header h1 {
 }
 
 .banner-weather {
-  border-left-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, var(--card-bg));
+  background: var(--surface-2);
   color: var(--fg);
 }
 
 .banner-holiday {
-  border-left-color: var(--save);
-  background: color-mix(in srgb, var(--save) 13%, var(--card-bg));
+  background: var(--surface-2);
   color: var(--fg);
 }
 
-/* Always-visible weather state, shown as a pill with a status dot. */
+/* Always-visible weather state: plain text, coloured only when it matters. */
 .weather-status {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   margin: 0 0 14px;
-  padding: 7px 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   line-height: 1.35;
   color: var(--muted);
 }
-.weather-status::before {
-  content: "";
-  flex: none;
-  width: 8px;
-  height: 8px;
-  margin-top: 0.4em;
-  border-radius: 50%;
-  background: var(--muted);
-}
-.weather-status-good { color: var(--fg); }
-.weather-status-good::before { background: var(--save); }
-.weather-status-bad { color: var(--fg); }
-.weather-status-bad::before { background: var(--accent); }
+.weather-status-good { color: var(--muted); }
+.weather-status-bad { color: var(--accent-text); font-weight: 600; }
 
 .link-btn {
   background: none;
@@ -141,7 +123,7 @@ header h1 {
   padding: 14px;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--r-md);
 }
 
 .filter-wide { grid-column: 1 / -1; }
@@ -186,7 +168,7 @@ button {
   font-size: 0.95rem;
   padding: 10px 16px;
   min-height: 44px;
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--card-bg);
   color: var(--fg);
@@ -201,7 +183,7 @@ button.primary {
   background: var(--accent);
   color: var(--accent-fg);
   border-color: var(--accent);
-  border-radius: 16px;
+  border-radius: var(--r-md);
   font-size: 1rem;
   font-weight: 700;
   flex: 1 1 100%;
@@ -216,7 +198,7 @@ button.primary {
   padding: 4px;
   margin-bottom: 16px;
   background: var(--surface-2);
-  border-radius: 18px;
+  border-radius: var(--r-md);
 }
 
 .mode-btn {
@@ -227,7 +209,7 @@ button.primary {
   justify-content: center;
   min-height: 52px;
   border: none;
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   background: none;
   padding: 6px 12px;
   color: var(--muted);
@@ -236,19 +218,13 @@ button.primary {
 .mode-btn.active {
   background: var(--accent);
   color: var(--accent-fg);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .pro-badge {
-  display: inline-block;
-  margin-top: 2px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: color-mix(in srgb, currentColor 16%, transparent);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  margin-top: 1px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 .pro-note {
@@ -266,7 +242,7 @@ button.primary {
   width: 100%;
   margin-bottom: 12px;
   padding: 10px 14px;
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   font-size: 0.85rem;
   font-weight: 500;
   text-align: left;
@@ -278,7 +254,7 @@ button.primary {
 .deck {
   position: relative;
   /* Tall like a card stack, capped so the action buttons stay on screen. */
-  height: clamp(260px, calc(100vh - 400px), 460px);
+  height: clamp(260px, calc(100vh - 430px), 460px);
   margin-bottom: 10px;
 }
 
@@ -287,9 +263,9 @@ button.primary {
   inset: 0;
   display: flex;
   padding: 22px 20px 20px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, var(--card-bg)) 0%, var(--card-bg) 42%);
+  background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 26px;
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow);
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
@@ -318,9 +294,9 @@ button.primary {
   align-items: center;
   margin: 0;
   font-size: clamp(1.4rem, 6.2vw, 1.8rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.22;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
   text-align: left;
   overflow-wrap: anywhere;
 }
@@ -328,14 +304,10 @@ button.primary {
 .category {
   display: inline-block;
   margin-bottom: 10px;
-  padding: 3px 11px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent-text);
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
 .swipe-card .meta {
@@ -354,12 +326,11 @@ button.primary {
 }
 
 .chip {
-  padding: 4px 10px;
-  border-radius: 999px;
+  padding: 3px 8px;
+  border-radius: 6px;
   background: var(--surface-2);
-  color: var(--fg);
+  color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 500;
 }
 
 .stamp {
@@ -371,7 +342,7 @@ button.primary {
   border: 3px solid;
   border-radius: 10px;
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.08em;
   opacity: 0;
   pointer-events: none;
@@ -389,7 +360,7 @@ button.primary {
   padding: 24px;
   background: var(--card-bg);
   border: 2px dashed var(--border);
-  border-radius: 26px;
+  border-radius: var(--r-lg);
   text-align: center;
   color: var(--muted);
 }
@@ -410,7 +381,7 @@ button.primary {
   min-width: 0;
   min-height: 52px;
   padding: 10px 6px;
-  border-radius: 16px;
+  border-radius: var(--r-md);
   font-size: 0.92rem;
   font-weight: 600;
   white-space: nowrap;
@@ -427,7 +398,7 @@ button.primary {
   padding: 4px;
   margin-bottom: 14px;
   background: var(--surface-2);
-  border-radius: 14px;
+  border-radius: var(--r-sm);
 }
 
 .tab-btn {
@@ -458,7 +429,7 @@ button.primary {
 .list li {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--r-sm);
   padding: 12px 14px;
   display: flex;
   justify-content: space-between;
@@ -481,7 +452,7 @@ button.primary {
 .stat-tile {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--r-md);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -491,18 +462,15 @@ button.primary {
 
 .stat-value {
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
   text-transform: capitalize;
 }
 .stat-label {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.8rem;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* Day plan */
@@ -511,7 +479,7 @@ button.primary {
 .plan-summary {
   margin: 0 0 4px;
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
@@ -520,11 +488,9 @@ button.primary {
 
 .day-heading {
   margin: 22px 0 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg);
 }
 
 /* Stops are numbered and joined by a line, like a route. */
@@ -544,7 +510,7 @@ button.primary {
   padding: 14px 14px 14px 56px;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: var(--r-md);
 }
 .plan-stop::before {
   content: counter(stop);
@@ -559,7 +525,7 @@ button.primary {
   background: var(--accent);
   color: var(--accent-fg);
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 .plan-stop:not(:last-child)::after {
   content: "";
@@ -580,7 +546,7 @@ button.primary {
   margin-top: 12px;
   padding: 9px 12px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--accent) 9%, var(--card-bg));
+  background: var(--surface-2);
   font-size: 0.85rem;
   line-height: 1.4;
 }
@@ -603,7 +569,7 @@ button.primary {
   font-size: 0.8rem;
 }
 
-.plans-heading { margin: 28px 0 10px; font-size: 1.05rem; font-weight: 800; }
+.plans-heading { margin: 28px 0 10px; font-size: 1.05rem; font-weight: 700; }
 
 .saved-plan details { flex: 1; min-width: 0; }
 .saved-plan summary { cursor: pointer; font-weight: 600; }
@@ -635,10 +601,10 @@ footer button { flex: none; border-radius: 12px; padding: 6px 10px; }
 .who-prompt {
   margin-bottom: 14px;
   padding: 14px;
-  background: color-mix(in srgb, var(--accent) 9%, var(--card-bg));
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
-  border-radius: 18px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
 }
-.who-prompt h2 { margin: 0 0 10px; font-size: 1.05rem; font-weight: 800; }
+.who-prompt h2 { margin: 0 0 10px; font-size: 1.05rem; font-weight: 700; }
 .who-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-.who-options button { min-height: 48px; font-weight: 700; border-radius: 14px; }
+.who-options button { min-height: 48px; font-weight: 600; border-radius: var(--r-sm); }
