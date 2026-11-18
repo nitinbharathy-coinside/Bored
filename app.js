@@ -2,7 +2,7 @@
   const { WHO_VALUES, buildDeck, passesWeather, computeStreak, nearestArea, activityChips } = window.BoredFilter;
   const { createDeck } = window.BoredDeck;
   const { isPublicHoliday, nextLongWeekend } = window.BoredHolidays;
-  const { fetchSingaporeWeather } = window.BoredWeather;
+  const { fetchSingaporeWeather, isNightInSingapore } = window.BoredWeather;
   const { planDays, formatPlanText, formatMultiDayText, formatMinutes, formatCostRange, encodePlans, decodePlans, COST_LABELS } = window.BoredPlanner;
 
   const STORAGE_KEYS = { saved: 'bored.saved', done: 'bored.done', plans: 'bored.plans', theme: 'bored.theme', who: 'bored.who' };
@@ -30,7 +30,7 @@
   // `checked` is true once a fetch attempt has settled at all (success or
   // failure) — this is what lets the status line distinguish "still
   // loading" from "the API call failed" from "loaded, and it's dry".
-  let weatherState = { isRaining: false, ignoreWeather: false, known: false, checked: false, rainingFraction: 0 };
+  let weatherState = { scene: null, isRaining: false, ignoreWeather: false, known: false, checked: false, rainingFraction: 0 };
 
   function loadList(key) {
     try {
@@ -324,6 +324,36 @@
   // Always visible, regardless of whether it's raining — this is the one
   // place you can check "did the live weather integration actually work?"
   // without needing to catch it mid-rainstorm.
+  // Header illustration: sky, sun/moon, clouds and which third of the island has rain.
+  // Display only. ?weather=sunny|partly|cloudy|rain|rain-east|rain-west|night previews a scene.
+  const SKY_PREVIEWS = {
+    sunny: { sky: 'clear', rain: {} },
+    partly: { sky: 'partly', rain: {} },
+    cloudy: { sky: 'cloudy', rain: {} },
+    rain: { sky: 'cloudy', rain: { west: true, central: true, east: true } },
+    'rain-east': { sky: 'partly', rain: { east: true } },
+    'rain-west': { sky: 'partly', rain: { west: true } },
+  };
+  function renderSky() {
+    const sky = document.getElementById('sky');
+    if (!sky) return;
+    let preview = null;
+    let night = isNightInSingapore(new Date());
+    try {
+      const p = new URLSearchParams(location.search).get('weather');
+      if (p === 'night') { preview = SKY_PREVIEWS.sunny; night = true; }
+      else if (p && SKY_PREVIEWS[p]) { preview = SKY_PREVIEWS[p]; night = false; }
+    } catch (e) { /* ignore */ }
+    const scene = preview || (weatherState.known ? weatherState.scene : null);
+    sky.dataset.sky = scene ? scene.sky : 'neutral';
+    sky.dataset.time = night ? 'night' : 'day';
+    const rain = (scene && scene.rain) || {};
+    ['west', 'central', 'east'].forEach((z) => { sky.classList.toggle('rain-' + z, !!rain[z]); });
+    // Sun sits over the first part of the island that is not raining.
+    const side = !rain.west ? 'west' : !rain.east ? 'east' : !rain.central ? 'central' : 'none';
+    sky.dataset.sun = side;
+  }
+
   function renderWeatherStatus() {
     const statusEl = el('weather-status');
     // While it is raining the banner above already says so (and carries the
@@ -766,13 +796,16 @@
   startDeck();
   openSharedPlan();
   renderWeatherStatus();
+  renderSky();
 
   fetchSingaporeWeather()
     .then((summary) => {
       weatherState.isRaining = summary.isRaining;
       weatherState.rainingFraction = summary.rainingFraction;
+      weatherState.scene = summary.scene || null;
       weatherState.known = true;
       weatherState.checked = true;
+      renderSky();
       renderWeatherBanner();
       renderWeatherStatus();
       renderDeck();
@@ -783,6 +816,7 @@
       // instead of silently pretending nothing happened.
       weatherState.known = false;
       weatherState.checked = true;
+      renderSky();
       renderWeatherBanner();
       renderWeatherStatus();
       renderDeck();
