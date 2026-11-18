@@ -326,6 +326,9 @@
   // without needing to catch it mid-rainstorm.
   function renderWeatherStatus() {
     const statusEl = el('weather-status');
+    // While it is raining the banner above already says so (and carries the
+    // override link), so a second line would just repeat it.
+    statusEl.hidden = weatherState.known && weatherState.isRaining;
     if (!weatherState.known) {
       statusEl.textContent = weatherState.checked
         ? 'Weather unavailable right now (NEA API unreachable or blocked). Outdoor picks are not being filtered for rain.'
@@ -333,10 +336,7 @@
       statusEl.className = weatherState.checked ? 'weather-status weather-status-bad' : 'weather-status';
       return;
     }
-    const pct = Math.round(weatherState.rainingFraction * 100);
-    statusEl.textContent = weatherState.isRaining
-      ? `Rain reported in about ${pct}% of NEA forecast areas. Outdoor picks are being filtered.`
-      : `Dry across Singapore right now (NEA). No rain filtering applied.`;
+    statusEl.textContent = 'Dry across Singapore right now (NEA). No rain filtering applied.';
     statusEl.className = 'weather-status weather-status-good';
   }
 

@@ -255,7 +255,8 @@ button.primary {
 .deck {
   position: relative;
   /* Tall like a card stack, capped so the action buttons stay on screen. */
-  height: clamp(210px, calc(100vh - 500px), 460px);
+  height: clamp(210px, calc(100vh - 520px), 460px);
+  height: clamp(210px, calc(100dvh - 520px), 460px);
   margin-bottom: 10px;
 }
 
@@ -376,6 +377,15 @@ button.primary {
   text-align: center;
 }
 
+.deck-bar {
+  /* Keeps Skip / Save on screen while the card area is in view, like an app toolbar. */
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 0 -16px;
+  padding: 10px 16px calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent 0, var(--bg) 10px);
+}
 .deck-actions { flex-wrap: nowrap; gap: 8px; margin-bottom: 10px; }
 .deck-actions button {
   flex: 1 1 0;
@@ -627,3 +637,12 @@ body::before {
 @media (min-width: 641px) {
   body::before { background-size: auto 100%, auto; }
 }
+
+/* App-like behaviour: no rubber-band bounce, no tap flash, no double-tap zoom delay. */
+html, body { overscroll-behavior-y: none; }
+button, .swipe-card, .mode-btn, .tab-btn, label, select, summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button, .swipe-card, .mode-btn, .tab-btn, .banner, header, nav { -webkit-touch-callout: none; }
+button, .mode-btn, .tab-btn, .deck-status, header, .banner { -webkit-user-select: none; user-select: none; }
